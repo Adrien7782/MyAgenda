@@ -1,0 +1,111 @@
+# Publie une nouvelle version de My Agenda.
+#
+# Se déclenche quand un tag "vX.Y.Z" est envoyé sur GitHub (voir RELEASE.md) :
+#   npm version patch        → 0.6.0 devient 0.6.1, commit + tag v0.6.1
+#   git push --follow-tags   → envoie le tout, ce workflow démarre
+#
+# Résultat : une "Release" GitHub avec l'installeur Windows (.exe), sa signature (.sig)
+# et latest.json, le fichier que les applications installées consultent pour se mettre à jour.
+
+name: Publier une version
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm test
+        env:
+          TZ: Europe/Paris
+
+  windows:
+    needs: tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifier les secrets du dépôt
+        shell: bash
+        env:
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          PASS: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          SB_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SB_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          missing=""
+          [ -z "$KEY" ] && missing="$missing TAURI_SIGNING_PRIVATE_KEY"
+          [ -z "$PASS" ] && missing="$missing TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
+          [ -z "$SB_URL" ] && missing="$missing VITE_SUPABASE_URL"
+          [ -z "$SB_KEY" ] && missing="$missing VITE_SUPABASE_ANON_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Secrets manquants (Settings → Secrets and variables → Actions) :$missing"
+            exit 1
+          fi
+
+      - name: Vérifier que le tag correspond à package.json
+        shell: bash
+        run: |
+          V=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "v$V" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Le tag $GITHUB_REF_NAME ne correspond pas à la version $V de package.json. Utilise 'npm version' pour créer le tag."
+            exit 1
+          fi
+
+      - name: Adresse des mises à jour (ce dépôt)
+        shell: bash
+        run: |
+          node -e "const fs=require('fs');const f='src-tauri/tauri.conf.json';fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace('__GITHUB_REPOSITORY__',process.env.GITHUB_REPOSITORY))"
+          grep -n "releases/latest/download/latest.json" src-tauri/tauri.conf.json
+
+      - name: Notes de version (CHANGELOG.md)
+        id: notes
+        shell: bash
+        run: |
+          {
+            echo "body<<__NOTES__"
+            node scripts/release-notes.mjs
+            echo "__NOTES__"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - run: npm ci
+
+      - name: Construire, signer et publier
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        with:
+          tagName: v__VERSION__
+          releaseName: My Agenda v__VERSION__
+          releaseBody: ${{ steps.notes.outputs.body }}
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true

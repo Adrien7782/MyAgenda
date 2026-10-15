@@ -1,0 +1,27 @@
+[package]
+name = "flux"
+version = "0.6.0"
+edition = "2021"
+
+[lib]
+name = "flux_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+# Les versions Rust et JavaScript (package.json) de Tauri doivent rester sur le même
+# "x.y" : sinon la construction du .exe s'arrête ("mismatched Tauri packages").
+[dependencies]
+tauri = { version = "~2.12", features = ["tray-icon"] }
+tauri-plugin-sql = { version = "~2.4", features = ["sqlite"] }
+tauri-plugin-notification = "~2.3"
+tauri-plugin-http = "~2.7"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-autostart = "~2.7"
+tauri-plugin-single-instance = "2"
+tauri-plugin-updater = "~2.14"
+tauri-plugin-process = "~2.4"
