@@ -20,8 +20,10 @@ export function describeUpdateError(e: unknown): string {
 /** Les notes de version arrivent en Markdown : on garde un texte simple et lisible. */
 export function cleanReleaseNotes(notes: string | undefined): string[] {
   if (!notes) return [];
-  return notes
-    .split(/\r?\n/)
+  // Le mode d'emploi d'installation (après "---") ne concerne pas l'application déjà installée.
+  const lines = notes.split(/\r?\n/);
+  const cut = lines.findIndex((l) => /^\s*---\s*$/.test(l));
+  return (cut === -1 ? lines : lines.slice(0, cut))
     .map((l) => l.replace(/^#+\s*/, '').replace(/\*\*(.+?)\*\*/g, '$1').replace(/^\s*[-*]\s+/, '• ').trimEnd())
     .filter((l, i, all) => l.trim() !== '' || (i > 0 && all[i - 1].trim() !== ''))
     .slice(0, 40);

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { services } from '../../app/container';
 import { currentMiniWindow } from '../../infrastructure/tauri/miniWindow';
+import { hasNativeMacControls } from '../../infrastructure/platform';
 import { SettingKeys } from '../../services/settingsService';
 import { TaskModal } from '../tasks/task-modal/TaskModal';
 import { MiniContent } from './MiniContent';
@@ -17,6 +18,17 @@ export function MiniApp() {
       timer = setTimeout(() => void services.settings.set(SettingKeys.miniBounds, JSON.stringify(b)), 400);
     }).then((fn) => { off = fn; });
     return () => { clearTimeout(timer); off?.(); };
+  }, []);
+
+  // macOS : fermeture par la pastille rouge → on mémorise que le mini est fermé.
+  useEffect(() => {
+    if (!hasNativeMacControls()) return;
+    let off: (() => void) | undefined;
+    void currentMiniWindow.onCloseRequested(async () => {
+      await services.settings.setBool(SettingKeys.miniOpen, false);
+      services.changeBus.publish('mini');
+    }).then((fn) => { off = fn; });
+    return () => off?.();
   }, []);
 
   return (

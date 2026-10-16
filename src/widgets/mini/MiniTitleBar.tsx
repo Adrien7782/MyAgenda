@@ -4,6 +4,7 @@ import { currentMiniWindow } from '../../infrastructure/tauri/miniWindow';
 import { SettingKeys } from '../../services/settingsService';
 import { useSettingsStore } from '../../store/settingsStore';
 import { AppLogo } from '../layout/AppLogo';
+import { hasNativeMacControls } from '../../infrastructure/platform';
 
 function PinGlyph({ active }: { active: boolean }) {
   return (
@@ -17,6 +18,7 @@ function PinGlyph({ active }: { active: boolean }) {
 export function MiniTitleBar() {
   const onTop = useSettingsStore((s) => s.miniAlwaysOnTop);
   const setOnTop = useSettingsStore((s) => s.setMiniAlwaysOnTop);
+  const mac = hasNativeMacControls();
 
   useEffect(() => { void currentMiniWindow.setAlwaysOnTop(onTop); }, [onTop]);
 
@@ -31,7 +33,7 @@ export function MiniTitleBar() {
       height: 30, flexShrink: 0, display: 'flex', alignItems: 'center', background: 'var(--chrome)',
       borderBottom: '1px solid var(--border)', userSelect: 'none',
     }}>
-      <div data-tauri-drag-region style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 10, height: '100%', minWidth: 0 }}>
+      <div data-tauri-drag-region style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, paddingLeft: mac ? 64 : 10, height: '100%', minWidth: 0 }}>
         <AppLogo size={14} />
         <span data-tauri-drag-region style={{ fontSize: 11, opacity: 0.75, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>My Agenda Mini</span>
       </div>
@@ -39,9 +41,11 @@ export function MiniTitleBar() {
         title={onTop ? 'Ne plus garder au premier plan' : 'Garder au premier plan'} aria-pressed={onTop} onClick={() => setOnTop(!onTop)}>
         <PinGlyph active={onTop} />
       </button>
-      <button type="button" className="win-btn win-btn--close" style={{ width: 40 }} title="Fermer le mini" aria-label="Fermer le mini" onClick={close}>
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1"><path d="M0.5 0.5l9 9M9.5 0.5l-9 9" /></svg>
-      </button>
+      {!mac && (
+        <button type="button" className="win-btn win-btn--close" style={{ width: 40 }} title="Fermer le mini" aria-label="Fermer le mini" onClick={close}>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1"><path d="M0.5 0.5l9 9M9.5 0.5l-9 9" /></svg>
+        </button>
+      )}
     </div>
   );
 }

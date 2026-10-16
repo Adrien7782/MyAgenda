@@ -39,6 +39,10 @@ describe('mises à jour', () => {
     expect(describeUpdateError(new Error('signature verification failed'))).toMatch(/signée/);
   });
 
+  it("les notes s'arrêtent avant le mode d'emploi d'installation", () => {
+    expect(cleanReleaseNotes('- Mode concentration\n\n---\n\n### Installer\nxattr …')).toEqual(['• Mode concentration', '']);
+  });
+
   it('notes de version en texte simple', () => {
     expect(cleanReleaseNotes('## Nouveautés\n\n- **Rappels** sur les tâches\n* Mises à jour\n\n\n')).toEqual([
       'Nouveautés', '', '• Rappels sur les tâches', '• Mises à jour', '',

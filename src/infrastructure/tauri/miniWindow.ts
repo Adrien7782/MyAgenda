@@ -1,4 +1,4 @@
-import { isTauri } from '../platform';
+import { hasNativeMacControls, isTauri } from '../platform';
 import { MINI_LABEL } from './windowRole';
 
 export interface WindowBounds { x: number; y: number; width: number; height: number }
@@ -26,6 +26,7 @@ export const miniWindow = {
       return;
     }
     const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
+    const { LogicalPosition } = await import('@tauri-apps/api/dpi');
     const b = opts.bounds;
     const win = new WebviewWindow(MINI_LABEL, {
       url: 'index.html',
@@ -36,7 +37,10 @@ export const miniWindow = {
       minWidth: 240,
       minHeight: 280,
       resizable: true,
-      decorations: false,
+      // macOS : pastilles natives par-dessus notre barre de titre ; ailleurs : fenêtre sans bordure.
+      ...(hasNativeMacControls()
+        ? { decorations: true, titleBarStyle: 'overlay' as const, hiddenTitle: true, trafficLightPosition: new LogicalPosition(10, 12) }
+        : { decorations: false }),
       shadow: true,
       alwaysOnTop: opts.alwaysOnTop,
       focus: true,
@@ -65,6 +69,13 @@ export const currentMiniWindow = {
     if (!isTauri()) return;
     const { getCurrentWindow } = await import('@tauri-apps/api/window');
     await getCurrentWindow().close();
+  },
+
+  /** Fermeture par le bouton natif (pastille rouge sur macOS). */
+  async onCloseRequested(cb: () => void | Promise<void>): Promise<() => void> {
+    if (!isTauri()) return () => undefined;
+    const { getCurrentWindow } = await import('@tauri-apps/api/window');
+    return getCurrentWindow().onCloseRequested(async () => { await cb(); });
   },
 
   /** Appelle `cb` avec les dimensions logiques après chaque déplacement / redimensionnement. */

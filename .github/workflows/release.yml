@@ -1,11 +1,15 @@
-# Publie une nouvelle version de My Agenda.
+# Publie une nouvelle version de My Agenda pour Windows et macOS.
 #
 # Se déclenche quand un tag "vX.Y.Z" est envoyé sur GitHub (voir RELEASE.md) :
-#   npm version patch        → 0.6.0 devient 0.6.1, commit + tag v0.6.1
+#   npm version minor        → 0.6.0 devient 0.7.0, commit + tag v0.7.0
 #   git push --follow-tags   → envoie le tout, ce workflow démarre
+# ou à la main : onglet Actions → « Publier une version » → Run workflow.
 #
-# Résultat : une "Release" GitHub avec l'installeur Windows (.exe), sa signature (.sig)
-# et latest.json, le fichier que les applications installées consultent pour se mettre à jour.
+# Étapes :
+#   1. prepare  : tests, vérifications, création de la Release en brouillon
+#   2. build    : Windows (.exe) et macOS (.dmg, Intel + Apple Silicon) construits en parallèle
+#   3. publish  : latest.json (fichier lu par les applications pour se mettre à jour),
+#                 puis publication de la Release. Rien n'est visible tant que tout n'a pas réussi.
 
 name: Publier une version
 
@@ -17,9 +21,16 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
-  tests:
+  prepare:
     runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.release.outputs.id }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,12 +42,6 @@ jobs:
       - run: npm test
         env:
           TZ: Europe/Paris
-
-  windows:
-    needs: tests
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
 
       - name: Vérifier les secrets du dépôt
         shell: bash
@@ -56,7 +61,8 @@ jobs:
             exit 1
           fi
 
-      - name: Vérifier que le tag correspond à package.json
+      - name: Version
+        id: version
         shell: bash
         run: |
           V=$(node -p "require('./package.json').version")
@@ -64,6 +70,63 @@ jobs:
             echo "::error::Le tag $GITHUB_REF_NAME ne correspond pas à la version $V de package.json. Utilise 'npm version' pour créer le tag."
             exit 1
           fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Notes de version
+        run: |
+          node scripts/release-notes.mjs > release-body.md
+          printf '\n\n---\n\n' >> release-body.md
+          cat .github/release-install.md >> release-body.md
+
+      - name: Créer la Release (brouillon)
+        id: release
+        uses: actions/github-script@v7
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        with:
+          script: |
+            const fs = require('fs');
+            const tag = `v${process.env.VERSION}`;
+            const body = fs.readFileSync('release-body.md', 'utf8');
+            const { owner, repo } = context.repo;
+            const all = await github.paginate(github.rest.repos.listReleases, { owner, repo, per_page: 100 });
+            const existing = all.find((r) => r.tag_name === tag);
+            if (existing && !existing.draft) {
+              core.setFailed(`La version ${tag} est déjà publiée. Crée une nouvelle version avec "npm version patch".`);
+              return;
+            }
+            let release = existing;
+            if (release) {
+              // Relance d'une publication ratée : on repart d'un brouillon vide.
+              for (const a of release.assets) await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: a.id });
+              await github.rest.repos.updateRelease({ owner, repo, release_id: release.id, body });
+            } else {
+              ({ data: release } = await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, target_commitish: context.sha,
+                name: `My Agenda ${tag}`, body, draft: true, prerelease: false,
+              }));
+            }
+            core.setOutput('id', String(release.id));
+
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            args: --bundles nsis
+            rust_targets: ''
+          - name: macOS
+            os: macos-latest
+            # Un seul .dmg qui fonctionne sur les Mac Intel et Apple Silicon (M1, M2…).
+            args: --target universal-apple-darwin --bundles app,dmg
+            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
+    name: build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Adresse des mises à jour (ce dépôt)
         shell: bash
@@ -71,30 +134,23 @@ jobs:
           node -e "const fs=require('fs');const f='src-tauri/tauri.conf.json';fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace('__GITHUB_REPOSITORY__',process.env.GITHUB_REPOSITORY))"
           grep -n "releases/latest/download/latest.json" src-tauri/tauri.conf.json
 
-      - name: Notes de version (CHANGELOG.md)
-        id: notes
-        shell: bash
-        run: |
-          {
-            echo "body<<__NOTES__"
-            node scripts/release-notes.mjs
-            echo "__NOTES__"
-          } >> "$GITHUB_OUTPUT"
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
 
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
+          key: ${{ matrix.name }}
 
       - run: npm ci
 
-      - name: Construire, signer et publier
+      - name: Construire, signer et envoyer dans la Release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -103,9 +159,67 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         with:
-          tagName: v__VERSION__
-          releaseName: My Agenda v__VERSION__
-          releaseBody: ${{ steps.notes.outputs.body }}
-          releaseDraft: false
-          prerelease: false
-          includeUpdaterJson: true
+          releaseId: ${{ needs.prepare.outputs.release_id }}
+          args: ${{ matrix.args }}
+          # latest.json est assemblé une seule fois à la fin (job publish), pour les deux systèmes.
+          includeUpdaterJson: false
+
+  publish:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: latest.json puis publication
+        uses: actions/github-script@v7
+        env:
+          RELEASE_ID: ${{ needs.prepare.outputs.release_id }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        with:
+          script: |
+            const fs = require('fs');
+            const { owner, repo } = context.repo;
+            const release_id = Number(process.env.RELEASE_ID);
+            const assets = await github.paginate(github.rest.repos.listReleaseAssets, { owner, repo, release_id, per_page: 100 });
+
+            async function text(asset) {
+              const res = await github.request('GET /repos/{owner}/{repo}/releases/assets/{asset_id}', {
+                owner, repo, asset_id: asset.id, headers: { accept: 'application/octet-stream' },
+              });
+              return Buffer.from(res.data).toString('utf8').trim();
+            }
+            async function entry(test, label) {
+              const bin = assets.find((a) => test(a.name) && !a.name.endsWith('.sig'));
+              const sig = bin && assets.find((a) => a.name === `${bin.name}.sig`);
+              if (!bin || !sig) throw new Error(`Fichier de mise à jour ${label} introuvable dans la Release.`);
+              return { signature: await text(sig), url: bin.browser_download_url };
+            }
+
+            const windows = await entry((n) => /x64-setup\.exe$/i.test(n), 'Windows');
+            const mac = await entry((n) => /\.app\.tar\.gz$/i.test(n), 'macOS');
+            // Notes affichées dans l'application : la partie avant "---" (sans le mode d'emploi d'installation).
+            const body = fs.existsSync('CHANGELOG.md')
+              ? require('child_process').execSync('node scripts/release-notes.mjs').toString().trim()
+              : '';
+            const latest = {
+              version: process.env.VERSION,
+              notes: body,
+              pub_date: new Date().toISOString(),
+              platforms: {
+                'windows-x86_64': windows,
+                'darwin-x86_64': mac,
+                'darwin-aarch64': mac,
+              },
+            };
+
+            for (const a of assets.filter((a) => a.name === 'latest.json')) {
+              await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: a.id });
+            }
+            const data = Buffer.from(JSON.stringify(latest, null, 2));
+            await github.rest.repos.uploadReleaseAsset({
+              owner, repo, release_id, name: 'latest.json', data,
+              headers: { 'content-type': 'application/json', 'content-length': data.length },
+            });
+
+            await github.rest.repos.updateRelease({ owner, repo, release_id, draft: false, make_latest: 'true' });
+            core.notice(`My Agenda ${process.env.VERSION} publiée pour Windows et macOS.`);

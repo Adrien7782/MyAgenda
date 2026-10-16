@@ -160,7 +160,7 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // Lancé au démarrage de Windows : on reste discret dans la zone de notification.
+            // Lancé à l'ouverture de session : on reste discret (zone de notification / barre des menus).
             if std::env::args().any(|a| a == "--minimized") {
                 if let Some(w) = app.get_webview_window("main") {
                     let _ = w.hide();
@@ -186,6 +186,13 @@ pub fn run() {
                 _ => {}
             }
         })
-        .run(tauri::generate_context!())
-        .expect("erreur au lancement de My Agenda");
+        .build(tauri::generate_context!())
+        .expect("erreur au lancement de My Agenda")
+        .run(|_app, _event| {
+            // macOS : clic sur l'icône du Dock alors que la fenêtre est cachée → on la ré-affiche.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { has_visible_windows: false, .. } = _event {
+                show_app(_app);
+            }
+        });
 }

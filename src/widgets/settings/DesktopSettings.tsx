@@ -4,8 +4,9 @@ import { desktopIntegration } from '../../infrastructure/tauri/desktopIntegratio
 import { Toggle } from '../../shared/ui';
 import { useSettingsStore } from '../../store/settingsStore';
 import { SettingRow } from './SettingsSection';
+import { OS_TEXT } from '../../infrastructure/platform';
 
-/** Comportement de l'application sous Windows (zone de notification, démarrage). */
+/** Comportement de l'application sur l'ordinateur (zone de notification / barre des menus, démarrage). */
 export function DesktopSettings() {
   const closeToTray = useSettingsStore((s) => s.closeToTray);
   const setCloseToTray = useSettingsStore((s) => s.setCloseToTray);
@@ -27,14 +28,14 @@ export function DesktopSettings() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SettingRow
-        label="La croix garde My Agenda en arrière-plan"
-        description="La fenêtre se cache dans la zone de notification (près de l'horloge) : les rappels continuent. Pour quitter : clic droit sur l'icône → Quitter."
+        label={OS_TEXT.closeKeepsRunning}
+        description={OS_TEXT.trayHint}
       >
-        <Toggle checked={closeToTray} onChange={setCloseToTray} label="Fermer dans la zone de notification" />
+        <Toggle checked={closeToTray} onChange={setCloseToTray} label={`Garder dans ${OS_TEXT.tray}`} />
       </SettingRow>
       <SettingRow
-        label="Lancer au démarrage de Windows"
-        description={isDesktopApp ? "My Agenda démarre discrètement dans la zone de notification à l'ouverture de ta session." : 'Disponible uniquement dans l’application installée.'}
+        label={OS_TEXT.autostart}
+        description={isDesktopApp ? OS_TEXT.autostartHint : 'Disponible uniquement dans l’application installée.'}
       >
         <Toggle checked={autostart} onChange={toggleAutostart} label="Lancer au démarrage" />
       </SettingRow>

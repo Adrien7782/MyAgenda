@@ -93,12 +93,24 @@ syncService (toutes les 30 s, au retour du réseau)
 - La version vient de `package.json` (`tauri.conf.json` y renvoie, `__APP_VERSION__` côté interface).
 - Publication : `.github/workflows/release.yml` sur un tag `v*` → installeur NSIS signé + `latest.json`.
   Mode d'emploi complet : [RELEASE.md](RELEASE.md).
+- **macOS** : `src-tauri/tauri.macos.conf.json` (fusionné automatiquement sur Mac) remplace la barre
+  de titre sans bordure par la barre native transparente (pastilles à gauche) ; l'interface s'adapte
+  via `infrastructure/platform.ts` (`hasNativeMacControls`, libellés `OS_TEXT`). App signée « ad hoc »
+  (`bundle.macOS.signingIdentity = "-"`), non notarisée : déblocage manuel au 1er lancement (RELEASE.md).
+  Clic sur l'icône du Dock → `RunEvent::Reopen` ré-affiche la fenêtre cachée.
 
 ## Zone de notification
 
 La croix cache l'app (réglage `close_to_tray`, appliqué côté Rust via la commande `set_close_to_tray`) :
 rappels et synchronisation continuent. Icône : clic = ouvrir, clic droit = Ouvrir / Mini / Quitter.
 Option « Lancer au démarrage de Windows » (`tauri-plugin-autostart`, argument `--minimized`).
+
+## Icône
+
+Source : `src-tauri/icons/app-icon.svg` (et `app-icon-macos.svg`, la même avec la marge de la grille macOS).
+Après modification : `npx tauri icon src-tauri/icons/app-icon.svg`, puis
+`npx tauri icon src-tauri/icons/app-icon-macos.svg -o tmp-icons` et copier `tmp-icons/icon.icns`
+dans `src-tauri/icons/`. Le logo affiché dans l'application est `widgets/layout/AppLogo.tsx`.
 
 ## Où ajouter quoi ?
 
