@@ -14,6 +14,8 @@ import { itemsForDay } from '../widgets/agenda/agendaItems';
 import { useAgendaNavigation } from '../widgets/agenda/useAgendaNavigation';
 import { ImportCalendarModal } from '../widgets/calendar-sources/ImportCalendarModal';
 import { usePhoneLayout } from '../shared/hooks/usePhoneLayout';
+import { SwipePager } from '../shared/ui/SwipePager';
+import { MobileMonthView } from '../widgets/agenda/MobileMonthView';
 
 export function AgendaPage() {
   const phone = usePhoneLayout();
@@ -57,20 +59,25 @@ export function AgendaPage() {
   );
 
   if (phone) {
-    // Téléphone : mois compact + liste du jour en dessous (une seule zone qui défile), ou grille du jour.
+    // Téléphone : la période (mois, semaine ou jour) occupe tout l'écran ; glisser à gauche / à droite
+    // affiche la suivante / la précédente. Appuyer sur un jour du mois ouvre ce jour.
+    const pages = [nav.periodAt(-1), nav.periodAt(0), nav.periodAt(1)];
     return (
-      <div className="dot-grid" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%', position: 'relative' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%', position: 'relative', background: 'var(--bg)' }}>
         <AgendaToolbar nav={nav} onNewEvent={() => createEventAt(nav.selectedDay)} onImport={() => setImportOpen(true)} />
-        {nav.view === 'month' ? (
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-            <MonthView {...common} compact anchor={nav.anchor} onCreateOnDay={(key) => createEventAt(key)} />
-            {dayPanel(true)}
-          </div>
-        ) : (
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: 8 }}>
-            <TimeGridView {...common} days={nav.days} onCreateAt={createEventAt} />
-          </div>
-        )}
+        <SwipePager
+          pageKey={pages[1].key}
+          pageKeys={[pages[0].key, pages[1].key, pages[2].key]}
+          onMove={nav.move}
+          renderPage={(offset) => {
+            const page = pages[offset + 1];
+            return nav.view === 'month' ? (
+              <MobileMonthView {...common} anchor={page.anchor} onOpenDay={nav.openDay} />
+            ) : (
+              <TimeGridView {...common} compact days={page.days} onCreateAt={createEventAt} />
+            );
+          }}
+        />
         {importOpen && <ImportCalendarModal onClose={() => setImportOpen(false)} />}
       </div>
     );

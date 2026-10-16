@@ -1,4 +1,4 @@
-import { dayKeyFromIso, minutesOfDay, MINUTE_MS } from '../shared/date';
+import { addDays, dayKey, dayKeyFromIso, minutesOfDay, MINUTE_MS, parseDayKey } from '../shared/date';
 import type { CalendarEvent } from './event';
 
 export function eventStart(ev: CalendarEvent): Date {
@@ -33,6 +33,28 @@ export function isAllDay(ev: CalendarEvent): boolean {
   return minutesOfDay(start) === 0 && ev.duration_min >= 1440 && ev.duration_min % 1440 === 0;
 }
 
+/** Nombre de jours calendaires de `fromKey` à `toKey` (0 si même jour), insensible au changement d'heure. */
+export function daysBetween(fromKey: string, toKey: string): number {
+  const utc = (k: string) => { const [y, m, d] = k.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+  return Math.round((utc(toKey) - utc(fromKey)) / 86_400_000);
+}
+
+/** Évènement « journée entière » du jour `fromKey` au jour `toKey` inclus (voyage, vacances…). */
+export function allDaySpan(fromKey: string, toKey: string): { start_at: string; duration_min: number } {
+  const days = Math.max(1, daysBetween(fromKey, toKey) + 1);
+  return { start_at: parseDayKey(fromKey).toISOString(), duration_min: days * 1440 };
+}
+
+/** Nombre de jours d'un évènement « journée entière ». */
+export function allDayCount(ev: CalendarEvent): number {
+  return Math.max(1, Math.round(ev.duration_min / 1440));
+}
+
+/** Dernier jour (inclus) d'un évènement « journée entière ». */
+export function allDayLastKey(ev: CalendarEvent): string {
+  return dayKey(addDays(parseDayKey(dayKeyFromIso(ev.start_at)), allDayCount(ev) - 1));
+}
+
 /** L'évènement a-t-il lieu ce jour-là ? (gère les annuels et les évènements sur plusieurs jours) */
 export function occursOnDay(ev: CalendarEvent, key: string): boolean {
   if (ev.is_annual) {
@@ -42,7 +64,9 @@ export function occursOnDay(ev: CalendarEvent, key: string): boolean {
   }
   const startKey = dayKeyFromIso(ev.start_at);
   if (startKey === key) return true;
-  if (ev.duration_min < 1440 && !isAllDay(ev)) return false;
+  // Journées entières : on compte en jours calendaires (pas en minutes, faux au changement d'heure).
+  if (isAllDay(ev)) return key > startKey && key <= allDayLastKey(ev);
+  if (ev.duration_min < 1440) return false;
   // Multi-jours : la fin est exclusive.
   const endKey = dayKeyFromIso(new Date(eventEnd(ev).getTime() - 1).toISOString());
   return key > startKey && key <= endKey;

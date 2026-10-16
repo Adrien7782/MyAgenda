@@ -8,6 +8,9 @@ La section de la version publiée s'affiche dans l'application, dans Réglages �
 - **My Agenda sur Android** : l'application s'installe sur ton téléphone (fichier APK), avec une interface pensée pour le doigt : onglets en bas, calendrier compact, fenêtres plein écran, bouton « + » flottant.
 - Sur téléphone, les rappels sont confiés à Android : ils sonnent à l'heure même si l'application est fermée.
 - Une tâche peut maintenant être mise à la corbeille depuis sa fenêtre de modification.
+- **Évènements sur plusieurs jours** : « Journée(s) entière(s) » du … au … (voyage, vacances, congés), affichés en une barre continue dans les vues Semaine et Mois.
+- **3 nouveaux thèmes** : Rose & blanc, Rose & noir, Jaune & blanc.
+- Téléphone : agenda en Mois / Semaine / Jour, on passe d'une période à l'autre en **glissant le doigt** ; nouveau mois plein écran ; semaine sur toute la largeur ; la liste des tâches remplace le Kanban.
 
 ## 0.7.2
 

@@ -10,7 +10,7 @@ export function AgendaToolbar({ nav, onNewEvent, onImport }: { nav: AgendaNaviga
   const phone = usePhoneLayout();
 
   if (phone) {
-    // Téléphone : Mois (calendrier compact + liste du jour) ou Jour (grille horaire). Nouvel évènement : bouton « + » flottant.
+    // Téléphone : Mois / Semaine / Jour, on passe d'une période à l'autre en glissant. Nouvel évènement : bouton « + » flottant.
     return (
       <>
         <PageHeader
@@ -25,9 +25,9 @@ export function AgendaToolbar({ nav, onNewEvent, onImport }: { nav: AgendaNaviga
         >
           <SegmentedControl<AgendaView>
             size="sm"
-            value={nav.view === 'week' ? 'day' : nav.view}
+            value={nav.view}
             onChange={nav.changeView}
-            options={[{ value: 'month', label: 'Mois' }, { value: 'day', label: 'Jour' }]}
+            options={[{ value: 'month', label: 'Mois' }, { value: 'week', label: 'Semaine' }, { value: 'day', label: 'Jour' }]}
           />
           <SegmentedControl<AgendaFilter> size="sm" value={nav.filter} onChange={nav.setFilter} options={FILTERS} />
           <IconButton label="Importer un emploi du temps (.ics)" size={30} onClick={onImport}><LinkIcon size={14} /></IconButton>

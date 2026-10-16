@@ -2,7 +2,8 @@ import type { CalendarEvent } from '../../domain/event/event';
 import { OPEN_HINT, openGesture } from '../../shared/device';
 import type { Task } from '../../domain/task/task';
 import { formatDayLabel, formatDuration, formatTime } from '../../domain/shared/date';
-import { isAllDay } from '../../domain/event/eventRules';
+import { allDayCount, allDayLastKey, isAllDay } from '../../domain/event/eventRules';
+import { dayKeyFromIso } from '../../domain/shared/date';
 import { CalendarIcon, EditIcon, MapPinIcon, PlusIcon, TrashIcon } from '../../shared/icons/Icons';
 import { Button, EmptyState, IconButton, SectionTitle, StatusCheck } from '../../shared/ui';
 import {
@@ -53,7 +54,7 @@ export function DaySidePanel(p: DaySidePanelProps) {
                     style={{ position: 'relative', padding: '8px 10px', borderRadius: 8, background: 'var(--surface-el)', border: '1px solid var(--border)', borderLeft: `3px solid ${color}`, cursor: 'default' }}>
                     <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500, paddingRight: 48 }}>{ev.title}</div>
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 2 }}>
-                      {isAllDay(ev) ? 'Journée entière' : `${formatTime(ev.start_at)} · ${formatDuration(ev.duration_min)}`}
+                      {isAllDay(ev) ? allDayLabel(ev) : `${formatTime(ev.start_at)} · ${formatDuration(ev.duration_min)}`}
                       {ev.is_annual ? ' · Annuel' : ''}
                     </div>
                     {ev.location && (
@@ -121,4 +122,11 @@ export function DaySidePanel(p: DaySidePanelProps) {
       </div>
     </aside>
   );
+}
+
+/** « Journée entière » ou « Du 27 mars au 31 mars · 5 jours ». */
+function allDayLabel(ev: CalendarEvent): string {
+  const n = allDayCount(ev);
+  if (n <= 1) return 'Journée entière';
+  return `Du ${formatDayLabel(dayKeyFromIso(ev.start_at))} au ${formatDayLabel(allDayLastKey(ev))} · ${n} jours`;
 }

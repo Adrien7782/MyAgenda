@@ -34,7 +34,7 @@ export function TasksPage() {
       <div className="dot-grid" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
         <TasksToolbar tasks={tasks} />
         <div style={{ flex: 1, overflowY: 'auto', padding: phone ? '12px 12px 84px' : '16px 20px' }}>
-          {taskView === 'kanban' ? <KanbanBoard tasks={searched} /> : <TaskList tasks={visible} />}
+          {taskView === 'kanban' && !phone ? <KanbanBoard tasks={searched} /> : <TaskList tasks={visible} />}
         </div>
       </div>
       {showPanel && <ProgressPanel tasks={tasks} maxWidth={panelMax} />}

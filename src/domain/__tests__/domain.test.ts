@@ -102,3 +102,18 @@ describe('numéros de version', () => {
     expect(compareVersions('0.7', '0.7.0')).toBe(0);
   });
 });
+
+import { allDayCount, allDayLastKey, allDaySpan, daysBetween } from '../event/eventRules';
+
+describe('évènements sur plusieurs jours entiers', () => {
+  it('du / au en jours calendaires, même au changement d’heure', () => {
+    expect(daysBetween('2026-03-27', '2026-03-31')).toBe(4); // passage à l'heure d'été le 29
+    const trip = { ...ev({}), ...allDaySpan('2026-03-27', '2026-03-31') };
+    expect(allDayCount(trip)).toBe(5);
+    expect(allDayLastKey(trip)).toBe('2026-03-31');
+    expect(occursOnDay(trip, '2026-03-26')).toBe(false);
+    expect(occursOnDay(trip, '2026-03-29')).toBe(true);
+    expect(occursOnDay(trip, '2026-03-31')).toBe(true);
+    expect(occursOnDay(trip, '2026-04-01')).toBe(false);
+  });
+});

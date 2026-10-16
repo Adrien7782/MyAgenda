@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CalendarEvent, EventDraft } from '../../domain/event/event';
-import { isAllDay } from '../../domain/event/eventRules';
+import { allDayLastKey, allDaySpan, daysBetween, isAllDay } from '../../domain/event/eventRules';
 import { colorForTitle, eventColorKey, PASTEL_PALETTE } from '../../domain/event/eventColors';
-import { fromLocalInputValue, startOfDay, toLocalInputValue } from '../../domain/shared/date';
+import { dayKeyFromIso, fromLocalInputValue, toLocalInputValue } from '../../domain/shared/date';
 import { TrashIcon } from '../../shared/icons/Icons';
 import { Button, ColorPicker, Field, FieldRow, Modal, TextArea, TextInput, Toggle } from '../../shared/ui';
 import { readReminder, writeReminder, type ReminderSetting } from '../../domain/reminder/reminder';
@@ -41,7 +41,10 @@ function EventModalContent({ event, defaultStart, onClose }: { event: CalendarEv
   const [startAt, setStartAt] = useState(toLocalInputValue(event?.start_at ?? defaultStartIso(defaultStart)));
   const [allDay, setAllDay] = useState(event ? isAllDay(event) : false);
   const [duration, setDuration] = useState(event && !isAllDay(event) ? event.duration_min : 60);
-  const [days, setDays] = useState(event && isAllDay(event) ? event.duration_min / 1440 : 1);
+  // Journée(s) entière(s) : du … au … (inclus), en dates simples.
+  const initialStartKey = dayKeyFromIso(event?.start_at ?? defaultStartIso(defaultStart));
+  const [fromDay, setFromDay] = useState(initialStartKey);
+  const [toDay, setToDay] = useState(event && isAllDay(event) ? allDayLastKey(event) : initialStartKey);
   const [location, setLocation] = useState(event?.location ?? '');
   const [participants, setParticipants] = useState(event?.participants ?? '');
   const [comment, setComment] = useState(event?.comment ?? '');
@@ -53,18 +56,39 @@ function EventModalContent({ event, defaultStart, onClose }: { event: CalendarEv
 
   useEffect(() => { setTimeout(() => titleRef.current?.focus(), 30); }, []);
 
-  const valid = title.trim().length > 0 && !!fromLocalInputValue(startAt);
+  const dayCount = daysBetween(fromDay, toDay) + 1;
+  const valid = title.trim().length > 0 && (allDay ? !!fromDay && !!toDay && dayCount >= 1 : !!fromLocalInputValue(startAt));
+
+  function toggleAllDay(v: boolean) {
+    setAllDay(v);
+    if (v) {
+      // On part du jour choisi dans « Date et heure ».
+      const key = fromLocalInputValue(startAt) ? dayKeyFromIso(fromLocalInputValue(startAt)!) : fromDay;
+      setFromDay(key);
+      if (daysBetween(key, toDay) < 0) setToDay(key);
+    } else {
+      setStartAt(toLocalInputValue(new Date(`${fromDay}T09:00`).toISOString()));
+    }
+  }
+
+  function changeFrom(key: string) {
+    if (!key) return;
+    // Le séjour garde sa longueur quand on déplace son premier jour.
+    const length = Math.max(0, daysBetween(fromDay, toDay));
+    setFromDay(key);
+    const end = new Date(`${key}T00:00`);
+    end.setDate(end.getDate() + length);
+    setToDay(dayKeyFromIso(end.toISOString()));
+  }
 
   async function submit() {
     if (!valid || saving) return;
     setSaving(true);
     try {
-      let start = fromLocalInputValue(startAt)!;
-      if (allDay) start = startOfDay(new Date(start)).toISOString();
+      const span = allDay ? allDaySpan(fromDay, toDay) : { start_at: fromLocalInputValue(startAt)!, duration_min: Math.max(5, duration) };
       const draft: EventDraft = {
         title: title.trim(),
-        start_at: start,
-        duration_min: allDay ? Math.max(1, days) * 1440 : Math.max(5, duration),
+        ...span,
         location: location.trim() || undefined,
         participants: participants.trim() || undefined,
         comment: comment.trim() || undefined,
@@ -127,39 +151,47 @@ function EventModalContent({ event, defaultStart, onClose }: { event: CalendarEv
           defaultLabel={source ? `Couleur de « ${source.name} »` : 'Couleur du thème'}
         />
       </Field>
-      <FieldRow>
-        <Field label={allDay ? 'Date' : 'Date et heure'} required>
-          <TextInput type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
-        </Field>
-        <Field label="Lieu">
-          <TextInput value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Salle, adresse…" />
-        </Field>
-      </FieldRow>
-      <Field label="Durée" required>
-        {allDay ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <TextInput type="number" min={1} max={60} value={days} onChange={(e) => setDays(parseInt(e.target.value) || 1)} style={{ width: 80, textAlign: 'center' }} />
-            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>jour(s)</span>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-            {DURATIONS.map((min) => (
-              <button key={min} type="button" onClick={() => setDuration(min)} style={{
-                flex: 1, minWidth: 44, padding: '7px 0', borderRadius: 8, fontSize: 'var(--text-xs)', fontWeight: duration === min ? 600 : 400,
-                border: `1px solid ${duration === min ? 'color-mix(in srgb, var(--accent) 44%, transparent)' : 'var(--border)'}`,
-                background: duration === min ? 'var(--accent-bg)' : 'var(--surface-el)', color: duration === min ? 'var(--accent)' : 'var(--text-muted)',
-              }}>{min < 60 ? `${min} min` : `${min / 60} h`}</button>
-            ))}
-            <TextInput type="number" min={5} max={1440} value={duration} title="Durée en minutes"
-              onChange={(e) => setDuration(parseInt(e.target.value) || 60)} style={{ width: 76, textAlign: 'center' }} />
-          </div>
-        )}
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: allDay ? 'var(--text)' : 'var(--text-muted)' }}>
+        <Toggle checked={allDay} onChange={toggleAllDay} label="Journée entière" />
+        Journée(s) entière(s) <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>— voyage, vacances, congés…</span>
+      </label>
+      {allDay ? (
+        <FieldRow>
+          <Field label="Du" required>
+            <TextInput type="date" value={fromDay} onChange={(e) => changeFrom(e.target.value)} />
+          </Field>
+          <Field label="Au" required hint={dayCount >= 1 ? `${dayCount} jour${dayCount > 1 ? 's' : ''}` : 'La fin doit être après le début.'}>
+            <TextInput type="date" value={toDay} min={fromDay} onChange={(e) => e.target.value && setToDay(e.target.value)} />
+          </Field>
+        </FieldRow>
+      ) : (
+        <>
+          <Field label="Date et heure" required>
+            <TextInput type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
+          </Field>
+          <Field label="Durée" required>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+              {DURATIONS.map((min) => (
+                <button key={min} type="button" onClick={() => setDuration(min)} style={{
+                  flex: 1, minWidth: 44, padding: '7px 0', borderRadius: 8, fontSize: 'var(--text-xs)', fontWeight: duration === min ? 600 : 400,
+                  border: `1px solid ${duration === min ? 'color-mix(in srgb, var(--accent) 44%, transparent)' : 'var(--border)'}`,
+                  background: duration === min ? 'var(--accent-bg)' : 'var(--surface-el)', color: duration === min ? 'var(--accent)' : 'var(--text-muted)',
+                }}>{min < 60 ? `${min} min` : `${min / 60} h`}</button>
+              ))}
+              <TextInput type="number" min={5} max={1440} value={duration} title="Durée en minutes"
+                onChange={(e) => setDuration(parseInt(e.target.value) || 60)} style={{ width: 76, textAlign: 'center' }} />
+            </div>
+          </Field>
+        </>
+      )}
+      <Field label="Lieu">
+        <TextInput value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Salle, adresse…" />
       </Field>
       <ReminderField
         value={reminder}
         onChange={setReminder}
         due={(() => {
-          const iso = fromLocalInputValue(startAt);
+          const iso = allDay ? new Date(`${fromDay}T00:00`).toISOString() : fromLocalInputValue(startAt);
           if (!iso) return null;
           // Pour un anniversaire, le délai s'applique à la prochaine occurrence.
           return nextOccurrenceStart({ id: '', title, start_at: iso, duration_min: duration, is_annual: annual ? 1 : 0, created_at: '', updated_at: '' });
@@ -173,9 +205,6 @@ function EventModalContent({ event, defaultStart, onClose }: { event: CalendarEv
         <TextArea rows={2} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Description…" />
       </Field>
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
-          <Toggle checked={allDay} onChange={setAllDay} label="Journée entière" /> Journée entière
-        </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
           <Toggle checked={annual} onChange={setAnnual} color="var(--warn)" label="Annuel" /> Chaque année (anniversaire, fête…)
         </label>

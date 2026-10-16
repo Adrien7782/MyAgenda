@@ -5,7 +5,6 @@ import { useElementWidth } from '../../shared/hooks/useElementWidth';
 import { itemsForDay } from './agendaItems';
 import { EventChip, TaskChip } from './AgendaChip';
 import type { AgendaFilter } from './useAgendaNavigation';
-import { agendaTaskColor } from '../../shared/presentation/taskPresentation';
 
 interface MonthViewProps {
   anchor: Date;
@@ -19,55 +18,17 @@ interface MonthViewProps {
   onCreateOnDay: (key: string) => void;
   onEditEvent: (ev: CalendarEvent) => void;
   onEditTask: (t: Task) => void;
-  /** Téléphone : cases basses avec des points de couleur au lieu des étiquettes. */
-  compact?: boolean;
 }
 
 /**
  * Vue mensuelle. Clic = sélectionner le jour, double-clic sur une case vide = nouvel évènement,
  * double-clic sur un évènement / une tâche = le modifier.
  */
+/**
+ * Vue mensuelle (ordinateur). Sur téléphone : MobileMonthView.
+ */
 export function MonthView(props: MonthViewProps) {
-  return props.compact ? <CompactMonthView {...props} /> : <FullMonthView {...props} />;
-}
-
-/** Téléphone : mois compact (comme les agendas de téléphone), le détail du jour s'affiche dessous. */
-function CompactMonthView({ anchor, todayKey, selectedDay, tasks, events, filter, colorOf, onSelectDay }: MonthViewProps) {
-  const cells = monthGrid(anchor.getFullYear(), anchor.getMonth());
-  return (
-    <div style={{ padding: '0 10px 6px', flexShrink: 0 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
-        {DAYS_SHORT_FR.map((d) => (
-          <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: 0.6, textTransform: 'uppercase', padding: '6px 0' }}>{d.slice(0, 1)}</div>
-        ))}
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', rowGap: 2 }}>
-        {cells.map((date, i) => {
-          if (!date) return <div key={i} />;
-          const key = dayKey(date);
-          const isToday = key === todayKey;
-          const isSelected = key === selectedDay;
-          const day = itemsForDay(tasks, events, key, filter);
-          const dots = [...day.events.map((ev) => colorOf(ev)), ...day.tasks.map((t) => agendaTaskColor(t))].slice(0, 4);
-          return (
-            <button key={key} type="button" onClick={() => onSelectDay(key)} aria-label={key} aria-pressed={isSelected}
-              style={{ height: 46, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, borderRadius: 12,
-                background: isSelected ? 'var(--accent-bg)' : 'transparent' }}>
-              <span style={{
-                width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 14, fontWeight: isToday || isSelected ? 700 : 400,
-                background: isToday ? 'var(--accent)' : 'transparent',
-                color: isToday ? 'var(--on-accent)' : isSelected ? 'var(--accent)' : 'var(--text)',
-              }}>{date.getDate()}</span>
-              <span style={{ display: 'flex', gap: 2, height: 5 }}>
-                {dots.map((c, j) => <span key={j} style={{ width: 5, height: 5, borderRadius: '50%', background: c }} />)}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
+  return <FullMonthView {...props} />;
 }
 
 function FullMonthView({ anchor, todayKey, selectedDay, tasks, events, filter, colorOf, onSelectDay, onCreateOnDay, onEditEvent, onEditTask }: MonthViewProps) {

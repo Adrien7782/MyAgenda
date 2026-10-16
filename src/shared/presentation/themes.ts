@@ -1,4 +1,4 @@
-export type Theme = 'bleu' | 'violet' | 'jaune' | 'nb' | 'sombre';
+export type Theme = 'bleu' | 'violet' | 'jaune' | 'nb' | 'sombre' | 'rose' | 'rosenoir' | 'jauneblanc';
 
 export const THEMES: { key: Theme; label: string; accent: string; bg: string }[] = [
   { key: 'bleu', label: 'Bleu Neon', accent: '#3b6eff', bg: '#030b18' },
@@ -6,6 +6,9 @@ export const THEMES: { key: Theme; label: string; accent: string; bg: string }[]
   { key: 'jaune', label: 'Jaune', accent: '#e08a00', bg: '#0c0900' },
   { key: 'nb', label: 'N&B', accent: '#111111', bg: '#ffffff' },
   { key: 'sombre', label: 'Sombre', accent: '#d2d2d2', bg: '#0d0d0d' },
+  { key: 'rose', label: 'Rose & blanc', accent: '#e2457f', bg: '#ffffff' },
+  { key: 'rosenoir', label: 'Rose & noir', accent: '#ff4f9a', bg: '#0b0609' },
+  { key: 'jauneblanc', label: 'Jaune & blanc', accent: '#e0a100', bg: '#ffffff' },
 ];
 
 export function isTheme(v: string | null): v is Theme {
@@ -29,5 +32,5 @@ export function applyLastTheme(): void {
 
 /** Les champs date natifs doivent suivre la luminosité du thème. */
 export function isLightTheme(theme: Theme): boolean {
-  return theme === 'nb';
+  return theme === 'nb' || theme === 'rose' || theme === 'jauneblanc';
 }

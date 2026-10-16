@@ -22,7 +22,7 @@ export function TasksToolbar({ tasks }: { tasks: Task[] }) {
   const [progressOpen, setProgressOpen] = useState(false);
 
   if (phone) {
-    // Téléphone : actions en icônes, recherche dépliable, progression dans une fenêtre, « + » flottant.
+    // Téléphone : actions en icônes, recherche dépliable, progression dans une fenêtre, « + » flottant, pas de Kanban.
     return (
       <>
         <PageHeader
@@ -33,16 +33,14 @@ export function TasksToolbar({ tasks }: { tasks: Task[] }) {
                 <SearchIcon size={17} />
               </IconButton>
               <IconButton label="Progression" size={36} onClick={() => setProgressOpen(true)}><PieChartIcon size={17} /></IconButton>
-              <SegmentedControl<TaskView> size="sm" value={taskView} onChange={setTaskView} options={VIEW_OPTIONS(true)} />
             </>
           }
         >
+          {/* Téléphone : liste uniquement (le Kanban demande trop de largeur). */}
           {searchOpen ? (
             <div style={{ flex: 1, display: 'flex' }}><SearchInput value={searchQuery} onChange={setSearchQuery} width={10000} /></div>
-          ) : taskView === 'list' ? (
-            <FilterTabs tasks={tasks} />
           ) : (
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Maintiens une carte puis glisse-la vers une autre colonne.</span>
+            <FilterTabs tasks={tasks} />
           )}
         </PageHeader>
         {progressOpen && (
