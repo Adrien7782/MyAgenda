@@ -180,6 +180,10 @@ jobs:
             const fs = require('fs');
             const { owner, repo } = context.repo;
             const release_id = Number(process.env.RELEASE_ID);
+            const tag = `v${process.env.VERSION}`;
+            // Adresse DÉFINITIVE (avec le tag) : tant que la Release est en brouillon, GitHub donne
+            // des liens provisoires « untagged-… » qui cessent de fonctionner une fois publiée.
+            const finalUrl = (name) => `https://github.com/${owner}/${repo}/releases/download/${tag}/${encodeURIComponent(name)}`;
             const assets = await github.paginate(github.rest.repos.listReleaseAssets, { owner, repo, release_id, per_page: 100 });
 
             async function text(asset) {
@@ -192,7 +196,7 @@ jobs:
               const bin = assets.find((a) => test(a.name) && !a.name.endsWith('.sig'));
               const sig = bin && assets.find((a) => a.name === `${bin.name}.sig`);
               if (!bin || !sig) throw new Error(`Fichier de mise à jour ${label} introuvable dans la Release.`);
-              return { signature: await text(sig), url: bin.browser_download_url };
+              return { signature: await text(sig), url: finalUrl(bin.name) };
             }
 
             const windows = await entry((n) => /x64-setup\.exe$/i.test(n), 'Windows');
@@ -222,4 +226,20 @@ jobs:
             });
 
             await github.rest.repos.updateRelease({ owner, repo, release_id, draft: false, make_latest: 'true' });
+
+            // Contrôle final : les adresses lues par les applications répondent bien.
+            const urls = [
+              `https://github.com/${owner}/${repo}/releases/latest/download/latest.json`,
+              ...new Set(Object.values(latest.platforms).map((p) => p.url)),
+            ];
+            for (const url of urls) {
+              let ok = false;
+              for (let i = 0; i < 6 && !ok; i++) {
+                const res = await fetch(url, { method: 'HEAD', redirect: 'follow' });
+                ok = res.ok;
+                if (!ok) await new Promise((r) => setTimeout(r, 5000));
+              }
+              if (!ok) core.setFailed(`Adresse injoignable après publication : ${url}`);
+              else core.info(`OK ${url}`);
+            }
             core.notice(`My Agenda ${process.env.VERSION} publiée pour Windows et macOS.`);

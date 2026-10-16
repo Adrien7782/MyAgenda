@@ -61,7 +61,8 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
       await services.updates.install((progress) => set({ progress }));
     } catch (e) {
       console.error('[Mises à jour]', e);
-      set({ status: 'error', progress: null, error: describeUpdateError(e) });
+      // On garde la version trouvée affichée : l'utilisateur peut réessayer.
+      set({ status: get().available ? 'available' : 'error', progress: null, error: describeUpdateError(e, 'install') });
     }
   },
 

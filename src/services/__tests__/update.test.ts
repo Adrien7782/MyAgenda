@@ -37,6 +37,7 @@ describe('mises à jour', () => {
     expect(describeUpdateError(new Error('Could not fetch a valid release JSON from the remote'))).toMatch(/Aucune version/);
     expect(describeUpdateError('error sending request: dns error')).toMatch(/connexion/);
     expect(describeUpdateError(new Error('signature verification failed'))).toMatch(/signée/);
+    expect(describeUpdateError(new Error('Download request failed with status: 404 Not Found'), 'install')).toMatch(/introuvable/);
   });
 
   it("les notes s'arrêtent avant le mode d'emploi d'installation", () => {

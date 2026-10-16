@@ -3,6 +3,10 @@
 Écris ici ce qui change **avant** de publier une version (`npm version …`).
 La section de la version publiée s'affiche dans l'application, dans Réglages → Mises à jour.
 
+## 0.7.1
+
+- Correction : l'installation de la mise à jour depuis l'application échouait (« Aucune version publiée »).
+
 ## 0.7.0
 
 - Nouveau **mode Concentration** : un grand compte à rebours réglable (heures, minutes ou durées rapides) entouré d'une jauge circulaire. Pause, reprise, +5 min ; notification et petit carillon à la fin, même application cachée.

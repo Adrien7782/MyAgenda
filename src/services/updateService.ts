@@ -2,9 +2,12 @@ import type { AppUpdate, Notifier, Updater, UpdateProgress } from './ports';
 import { SettingKeys, type SettingsService } from './settingsService';
 
 /** Message lisible pour une erreur du module de mise à jour. */
-export function describeUpdateError(e: unknown): string {
+export function describeUpdateError(e: unknown, phase: 'check' | 'install' = 'check'): string {
   const raw = e instanceof Error ? e.message : String(e);
   const msg = raw.toLowerCase();
+  if (phase === 'install' && (msg.includes('404') || msg.includes('not found'))) {
+    return "Le fichier d'installation de cette version est introuvable sur GitHub. Réessaie plus tard : une version corrigée va être publiée.";
+  }
   if (msg.includes('404') || msg.includes('valid release json') || msg.includes('not found')) {
     return "Aucune version publiée n'a été trouvée pour l'instant.";
   }
