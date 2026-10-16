@@ -5,6 +5,7 @@ import { TitleBar } from '../widgets/layout/TitleBar';
 import { TasksPage } from '../pages/TasksPage';
 import { AgendaPage } from '../pages/AgendaPage';
 import { TrashPage } from '../pages/TrashPage';
+import { FocusPage } from '../pages/FocusPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { MiniApp } from '../widgets/mini/MiniApp';
 import { AuthScreen } from '../widgets/auth/AuthScreen';
@@ -50,6 +51,7 @@ function SignedInApp({ role }: { role: WindowRole }) {
           <Route index element={<Navigate to="/tasks" replace />} />
           <Route path="tasks" element={<TasksPage />} />
           <Route path="agenda" element={<AgendaPage />} />
+          <Route path="focus" element={<FocusPage />} />
           <Route path="trash" element={<TrashPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/tasks" replace />} />

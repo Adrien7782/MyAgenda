@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import { CalendarIcon, CheckSquareIcon, SettingsIcon, TrashIcon, WidgetIcon } from '../../shared/icons/Icons';
+import { CalendarIcon, CheckSquareIcon, SettingsIcon, TimerIcon, TrashIcon, WidgetIcon } from '../../shared/icons/Icons';
+import { isActive } from '../../domain/focus/focus';
+import { useFocusStore } from '../../store/focusStore';
 import { useMiniWindowController } from '../mini/useMiniWindowController';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useDeletedTasks } from '../../store/taskStore';
@@ -11,6 +13,7 @@ import { AppLogo } from './AppLogo';
 const NAV = [
   { to: '/tasks', Icon: CheckSquareIcon, label: 'Tâches' },
   { to: '/agenda', Icon: CalendarIcon, label: 'Agenda' },
+  { to: '/focus', Icon: TimerIcon, label: 'Concentration' },
   { to: '/trash', Icon: TrashIcon, label: 'Corbeille' },
 ];
 
@@ -26,7 +29,7 @@ function navStyle(active: boolean): React.CSSProperties {
   };
 }
 
-function SidebarLink({ to, label, children, badge, dot }: { to: string; label: string; children: ReactNode; badge?: number; dot?: boolean }) {
+function SidebarLink({ to, label, children, badge, dot, live }: { to: string; label: string; children: ReactNode; badge?: number; dot?: boolean; live?: 'running' | 'paused' }) {
   return (
     <NavLink to={to} title={label} aria-label={label} style={({ isActive }) => navStyle(isActive)}>
       {children}
@@ -36,6 +39,12 @@ function SidebarLink({ to, label, children, badge, dot }: { to: string; label: s
           background: 'var(--danger)', color: '#fff', fontSize: 9, fontWeight: 700,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>{badge > 99 ? '99+' : badge}</span>
+      )}
+      {live && (
+        <span aria-hidden className={live === 'running' ? 'focus-live' : undefined} style={{
+          position: 'absolute', bottom: 4, left: '50%', transform: 'translateX(-50%)', width: 14, height: 3, borderRadius: 2,
+          background: live === 'running' ? 'var(--accent)' : 'var(--warn)',
+        }} />
       )}
       {dot && (
         <span aria-hidden style={{
@@ -54,6 +63,7 @@ export function Sidebar() {
   const markTrashSeen = useSettingsStore((s) => s.markTrashSeen);
   const onTrashPage = useLocation().pathname.startsWith('/trash');
   const updateVersion = useUpdateStore((s) => s.available?.version);
+  const focusStatus = useFocusStore((s) => (isActive(s.session) ? (s.session.status as 'running' | 'paused') : undefined));
 
   // Visiter la corbeille = son contenu est pris en compte : la pastille disparaît.
   useEffect(() => {
@@ -70,7 +80,10 @@ export function Sidebar() {
       <div style={{ marginBottom: 18 }}><AppLogo /></div>
 
       {NAV.map(({ to, Icon, label }) => (
-        <SidebarLink key={to} to={to} label={label} badge={to === '/trash' ? trashCount : undefined}>
+        <SidebarLink key={to} to={to}
+          label={to === '/focus' && focusStatus ? `Concentration — ${focusStatus === 'running' ? 'séance en cours' : 'en pause'}` : label}
+          badge={to === '/trash' ? trashCount : undefined}
+          live={to === '/focus' ? focusStatus : undefined}>
           <Icon size={18} />
         </SidebarLink>
       ))}

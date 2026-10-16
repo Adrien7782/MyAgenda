@@ -3,6 +3,11 @@
 Écris ici ce qui change **avant** de publier une version (`npm version …`).
 La section de la version publiée s'affiche dans l'application, dans Réglages → Mises à jour.
 
+## 0.7.0
+
+- Nouveau **mode Concentration** : un grand compte à rebours réglable (heures, minutes ou durées rapides) entouré d'une jauge circulaire. Pause, reprise, +5 min ; notification et petit carillon à la fin, même application cachée.
+- My Agenda Mini : bascule entre le **tableau de bord** et le **compte à rebours**. Pendant une séance, le mini affiche le compte à rebours par défaut.
+
 ## 0.6.0
 
 - Mises à jour automatiques : l'application te prévient quand une nouvelle version sort et l'installe en un clic (Réglages → Mises à jour).

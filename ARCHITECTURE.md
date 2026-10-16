@@ -73,6 +73,16 @@ syncService (toutes les 30 s, au retour du réseau)
 - Une tâche liée à un évènement prend automatiquement le début de l'évènement comme échéance
   (`deadlineFromEvent`), et suit l'évènement s'il est déplacé ou ré-importé (`tasksToRealign`).
 
+## Mode concentration
+
+- `domain/focus/focus.ts` : la séance mémorise son **heure de fin** (`endsAt`) plutôt qu'un décompte,
+  donc la grande fenêtre et le mini affichent exactement le même temps, même après un redémarrage.
+- `store/focusStore.ts` : séance enregistrée dans le réglage `focus_session`, diffusée sur le canal `focus`.
+- Fin de séance : notification via le planificateur Rust des rappels (`focusEndNotification`),
+  carillon joué par le mini s'il est ouvert, sinon par la grande fenêtre (`useFocusWatcher`).
+- Interface : `widgets/focus/` (jauge `FocusDial`, `FocusTimer` en version page ou compacte),
+  `pages/FocusPage.tsx`, onglets du mini dans `widgets/mini/MiniContent.tsx`.
+
 ## Mises à jour et publication
 
 - `tauri-plugin-updater` + `tauri-plugin-process` ; configuration dans `tauri.conf.json → plugins.updater`

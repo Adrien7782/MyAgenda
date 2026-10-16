@@ -11,6 +11,8 @@ import { useSyncStore } from '../store/syncStore';
 import { useUiStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore';
 import { useUpdateStore } from '../store/updateStore';
+import { focusEndNotification, useFocusStore } from '../store/focusStore';
+import { useFocusWatcher } from '../widgets/focus/useFocusClock';
 import { openMini, toggleMini } from '../widgets/mini/useMiniWindowController';
 import { desktopIntegration } from '../infrastructure/tauri/desktopIntegration';
 
@@ -39,7 +41,7 @@ export function useAppBootstrap(role: WindowRole): { ready: boolean; error: stri
     (async () => {
       try {
         await useSettingsStore.getState().hydrate();
-        await Promise.all([useTaskStore.getState().load(), useEventStore.getState().load()]);
+        await Promise.all([useTaskStore.getState().load(), useEventStore.getState().load(), useFocusStore.getState().hydrate()]);
         if (cancelled) return;
         setReady(true);
         if (!isMain) return;
@@ -65,6 +67,7 @@ export function useAppBootstrap(role: WindowRole): { ready: boolean; error: stri
       if (channel === 'settings') void useSettingsStore.getState().hydrate();
       if (channel === 'mini' && isMain) void miniWindow.isOpen().then((open) => useUiStore.getState().setMiniOpen(open));
       if (channel === 'auth') void useAuthStore.getState().restore();
+      if (channel === 'focus') void useFocusStore.getState().hydrate();
     }).then((fn) => { off = fn; });
     return () => off?.();
   }, [isMain]);
@@ -98,14 +101,20 @@ export function useAppBootstrap(role: WindowRole): { ready: boolean; error: stri
   const autoAlerts = useSettingsStore((s) => s.autoAlerts);
   const tasks = useTaskStore((s) => s.tasks);
   const events = useEventStore((s) => s.events);
+  const focusSession = useFocusStore((s) => s.session);
   const refreshReminders = () =>
     void services.reminders
-      .refresh(useTaskStore.getState().tasks, useEventStore.getState().events, { enabled: notificationsEnabled, autoAlerts })
+      .refresh(
+        useTaskStore.getState().tasks,
+        useEventStore.getState().events,
+        { enabled: notificationsEnabled, autoAlerts },
+        focusEndNotification(useFocusStore.getState().session),
+      )
       .catch((e) => console.error('[Rappels]', e));
 
   useEffect(() => {
     if (isMain && ready) refreshReminders();
-  }, [isMain, ready, tasks, events, notificationsEnabled, autoAlerts]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isMain, ready, tasks, events, focusSession, notificationsEnabled, autoAlerts]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useInterval(refreshReminders, isMain && ready ? REMINDER_REFRESH_MS : null);
 
@@ -115,6 +124,9 @@ export function useAppBootstrap(role: WindowRole): { ready: boolean; error: stri
     void services.reminders.onFired((key) => void services.reminders.markFired(key)).then((fn) => { off = fn; });
     return () => off?.();
   }, [isMain]);
+
+  // ── Mode concentration : détection de la fin de séance (carillon) dans les deux fenêtres.
+  useFocusWatcher(role, ready);
 
   // ── Mises à jour de l'application (grande fenêtre uniquement).
   useEffect(() => {

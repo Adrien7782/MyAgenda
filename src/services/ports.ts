@@ -187,7 +187,7 @@ export interface Notifier {
 }
 
 /** Données susceptibles d'être modifiées par une autre fenêtre (grand agenda ↔ mini). */
-export type ChangeChannel = 'tasks' | 'events' | 'settings' | 'mini' | 'auth';
+export type ChangeChannel = 'tasks' | 'events' | 'settings' | 'mini' | 'auth' | 'focus';
 
 /** Bus de notification entre fenêtres : "j'ai modifié X, relis-le". */
 export interface ChangeBus {

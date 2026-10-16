@@ -348,3 +348,48 @@ export function CheckIcon(p: IconProps) {
     </Icon>
   );
 }
+
+export function TimerIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <circle cx="12" cy="13" r="8" />
+      <path d="M12 9v4l2.5 2.5" />
+      <path d="M9 2h6" />
+      <path d="M12 2v3" />
+    </Icon>
+  );
+}
+
+export function PlayIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <polygon points="7 4 20 12 7 20 7 4" fill="currentColor" />
+    </Icon>
+  );
+}
+
+export function PauseIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" />
+      <rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" />
+    </Icon>
+  );
+}
+
+export function StopIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor" />
+    </Icon>
+  );
+}
+
+export function PieChartIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
+      <path d="M22 12A10 10 0 0 0 12 2v10z" />
+    </Icon>
+  );
+}

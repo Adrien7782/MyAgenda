@@ -271,3 +271,37 @@ select.ui-input { cursor: pointer; }
 .fade-in { animation: fade-in-up .18s ease-out; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+
+/* ── Mode concentration ── */
+.focus-digits {
+  font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
+  font-weight: 600; letter-spacing: -0.02em; line-height: 1; color: var(--text);
+}
+.focus-input {
+  background: transparent; border: none; outline: none; text-align: center; padding: 0;
+  border-radius: 10px; caret-color: var(--accent); transition: background .15s;
+}
+.focus-input:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.focus-input:focus { background: var(--accent-bg); }
+.focus-step { transition: color .15s, background .15s; }
+.focus-step:hover { color: var(--accent) !important; background: var(--accent-bg); }
+.focus-chip {
+  padding: 5px 12px; border-radius: 999px; font-size: var(--text-xs); border: 1px solid var(--border);
+  background: var(--surface-el); color: var(--text-muted); transition: all .15s;
+}
+.focus-chip:hover { color: var(--text); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.focus-chip[aria-pressed='true'] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: var(--accent-bg); font-weight: 600; }
+.focus-round {
+  width: 46px; height: 46px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-el); border: 1px solid var(--border); color: var(--text-muted); transition: all .15s; flex-shrink: 0;
+}
+.focus-round:hover { color: var(--text); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.focus-round--main {
+  width: 64px; height: 64px; background: var(--accent-grad, var(--accent)); color: var(--on-accent);
+  border: none; box-shadow: var(--btn-shadow);
+}
+.focus-round--main:hover { color: var(--on-accent); opacity: .9; }
+.focus-round--sm { width: 34px; height: 34px; }
+.focus-round--main.focus-round--sm { width: 42px; height: 42px; }
+@keyframes focus-done { 0% { transform: scale(.96); opacity: .6; } 100% { transform: none; opacity: 1; } }
+.focus-live { animation: pulse 1.6s ease-in-out infinite; }

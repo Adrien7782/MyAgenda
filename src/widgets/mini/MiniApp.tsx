@@ -3,7 +3,7 @@ import { services } from '../../app/container';
 import { currentMiniWindow } from '../../infrastructure/tauri/miniWindow';
 import { SettingKeys } from '../../services/settingsService';
 import { TaskModal } from '../tasks/task-modal/TaskModal';
-import { MiniDashboard } from './MiniDashboard';
+import { MiniContent } from './MiniContent';
 import { MiniTitleBar } from './MiniTitleBar';
 
 /** Contenu complet de la fenêtre "My Agenda Mini". */
@@ -22,7 +22,7 @@ export function MiniApp() {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--surface)', overflow: 'hidden' }}>
       <MiniTitleBar />
-      <div style={{ flex: 1, minHeight: 0 }}><MiniDashboard /></div>
+      <div style={{ flex: 1, minHeight: 0 }}><MiniContent /></div>
       <TaskModal />
     </div>
   );

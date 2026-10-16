@@ -1,6 +1,6 @@
 import type { CalendarEvent } from '../domain/event/event';
 import type { Task } from '../domain/task/task';
-import { planReminders } from '../domain/reminder/reminder';
+import { planReminders, type PlannedReminder } from '../domain/reminder/reminder';
 import type { ReminderScheduler, SettingsRepository } from './ports';
 import { SettingKeys } from './settingsService';
 
@@ -21,13 +21,21 @@ export function createReminderService(scheduler: ReminderScheduler, settings: Se
     return fired ?? [];
   }
 
-  async function refresh(tasks: Task[], events: CalendarEvent[], opts: { enabled: boolean; autoAlerts: boolean }): Promise<number> {
+  /** `extra` : autres notifications à l'heure (ex. fin d'une séance de concentration). */
+  async function refresh(
+    tasks: Task[],
+    events: CalendarEvent[],
+    opts: { enabled: boolean; autoAlerts: boolean },
+    extra: PlannedReminder[] = [],
+  ): Promise<number> {
     if (!opts.enabled) {
       await scheduler.schedule([]);
       return 0;
     }
     const done = new Set(await firedKeys());
-    const plan = planReminders(tasks, events, { autoAlerts: opts.autoAlerts }).filter((r) => !done.has(r.key));
+    const plan = [...planReminders(tasks, events, { autoAlerts: opts.autoAlerts }), ...extra]
+      .filter((r) => !done.has(r.key))
+      .sort((a, b) => a.atMs - b.atMs);
     await scheduler.schedule(plan);
     return plan.length;
   }

@@ -18,6 +18,7 @@ export const SettingKeys = {
   autoAlerts: 'auto_alerts',
   remindersFired: 'reminders_fired',
   updateNotifiedVersion: 'update_notified_version',
+  focusSession: 'focus_session',
   lastSyncAt: 'last_sync_at',
   pullCursorTasks: 'sync_cursor_tasks',
   pullCursorEvents: 'sync_cursor_events',

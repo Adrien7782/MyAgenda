@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { XIcon } from '../../shared/icons/Icons';
 import { IconButton } from '../../shared/ui';
-import { MiniDashboard } from '../mini/MiniDashboard';
+import { MiniContent } from '../mini/MiniContent';
 import { closeMini } from '../mini/useMiniWindowController';
 import { APP_NAME } from './TitleBar';
 
@@ -47,7 +47,7 @@ export function MiniWidget() {
           <XIcon size={12} />
         </IconButton>
       </div>
-      <div style={{ flex: 1, overflow: 'hidden' }}><MiniDashboard /></div>
+      <div style={{ flex: 1, overflow: 'hidden' }}><MiniContent /></div>
     </div>
   );
 }
