@@ -3,7 +3,11 @@
 Écris ici ce qui change **avant** de publier une version (`npm version …`).
 La section de la version publiée s'affiche dans l'application, dans Réglages → Mises à jour.
 
-## 0.8.0
+## 1.0.1
+
+- Correction : une seule notification par rappel. L'alerte « Échéance atteinte » envoyée en plus du rappel est supprimée (ordinateur et téléphone).
+
+## 1.0.0
 
 - **My Agenda sur Android** : l'application s'installe sur ton téléphone (fichier APK), avec une interface pensée pour le doigt : onglets en bas, calendrier compact, fenêtres plein écran, bouton « + » flottant.
 - Sur téléphone, les rappels sont confiés à Android : ils sonnent à l'heure même si l'application est fermée.

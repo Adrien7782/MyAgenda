@@ -112,8 +112,7 @@ export function planReminders(tasks: Task[], events: CalendarEvent[], opts: Plan
     } else if (opts.autoAlerts && due && setting.kind === 'none') {
       push({ key: `auto-warn:${t.id}:${due.toISOString()}`, atMs: due.getTime() - AUTO_TASK_WARN_MIN * MINUTE_MS, title: `⏰ Dans ${AUTO_TASK_WARN_MIN} min`, body: t.title });
     }
-    // Échéance dépassée : toujours signalée (sauf alertes automatiques coupées).
-    if (opts.autoAlerts && due) push({ key: `auto-due:${t.id}:${due.toISOString()}`, atMs: due.getTime(), title: '⚠️ Échéance atteinte', body: t.title });
+    // Une seule notification par tâche : pas de seconde alerte « Échéance atteinte » à l'heure de l'échéance.
   }
 
   for (const ev of events) {

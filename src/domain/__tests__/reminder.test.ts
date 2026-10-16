@@ -59,11 +59,16 @@ describe('planification des rappels', () => {
     const tasks = [task({ deadline: iso(10) })];
     expect(planReminders(tasks, [], { now: NOW })).toEqual([]);
     const keys = planReminders(tasks, [], { now: NOW, autoAlerts: true }).map((p) => p.key.split(':')[0]);
-    expect(keys).toEqual(['auto-warn', 'auto-due']);
+    expect(keys).toEqual(['auto-warn']);
   });
   it("un rappel personnalisé remplace l'alerte 30 min avant", () => {
     const keys = planReminders([task({ deadline: iso(10), reminder_offset_min: 60 })], [], { now: NOW, autoAlerts: true }).map((p) => p.key.split(':')[0]);
-    expect(keys).toEqual(['task', 'auto-due']);
+    expect(keys).toEqual(['task']);
+  });
+  it('une seule notification par tâche, même avec un rappel « à l\'heure »', () => {
+    const plan = planReminders([task({ deadline: iso(10), reminder_offset_min: 0 })], [], { now: NOW, autoAlerts: true });
+    expect(plan).toHaveLength(1);
+    expect(plan[0].title).toBe('🔔 Rappel');
   });
   it('évènements : rappel personnalisé, alerte auto seulement pour les évènements perso', () => {
     const events = [

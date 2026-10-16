@@ -63,7 +63,7 @@ syncService (toutes les 30 s, au retour du réseau)
 - Règles pures dans `domain/reminder/reminder.ts` : un rappel est soit `reminder_offset_min`
   (minutes avant l'échéance d'une tâche / le début d'un évènement), soit `reminder_at` (date fixe).
   `planReminders()` calcule les notifications des 48 h à venir, plus les alertes automatiques
-  (30 min avant une échéance, à l'échéance, 15 min avant un évènement personnel).
+  (30 min avant une échéance, 15 min avant un évènement personnel).
 - `services/reminderService.ts` envoie ce planning au **planificateur Rust** (`schedule_reminders`
   dans `src-tauri/src/lib.rs`). Un thread vérifie toutes les 5 s et affiche la notification Windows,
   même quand la fenêtre est cachée dans la zone de notification. Il émet `reminder://fired` pour que

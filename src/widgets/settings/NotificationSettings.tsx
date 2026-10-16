@@ -15,7 +15,7 @@ export function NotificationSettings() {
       </SettingRow>
       <SettingRow
         label="Alertes automatiques"
-        description="Pour les éléments sans rappel personnalisé : 30 min avant chaque échéance, à l'échéance, et 15 min avant tes évènements personnels (pas les cours importés)."
+        description="Pour les éléments sans rappel personnalisé : 30 min avant chaque échéance et 15 min avant tes évènements personnels (pas les cours importés)."
       >
         <Toggle checked={notificationsEnabled && autoAlerts} onChange={setAutoAlerts} label="Alertes automatiques" />
       </SettingRow>
