@@ -3,6 +3,10 @@
 Écris ici ce qui change **avant** de publier une version (`npm version …`).
 La section de la version publiée s'affiche dans l'application, dans Réglages → Mises à jour.
 
+## 0.7.2
+
+- La nouvelle icône s'affiche aussi dans la barre des tâches (Windows gardait l'ancienne en mémoire).
+
 ## 0.7.1
 
 - Correction : l'installation de la mise à jour depuis l'application échouait (« Aucune version publiée »).
