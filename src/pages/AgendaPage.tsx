@@ -13,9 +13,11 @@ import { DaySidePanel } from '../widgets/agenda/DaySidePanel';
 import { itemsForDay } from '../widgets/agenda/agendaItems';
 import { useAgendaNavigation } from '../widgets/agenda/useAgendaNavigation';
 import { ImportCalendarModal } from '../widgets/calendar-sources/ImportCalendarModal';
+import { usePhoneLayout } from '../shared/hooks/usePhoneLayout';
 
 export function AgendaPage() {
-  const nav = useAgendaNavigation();
+  const phone = usePhoneLayout();
+  const nav = useAgendaNavigation(phone);
   const tasks = useActiveTasks();
   const events = useEventStore((s) => s.events);
   const sources = useEventStore((s) => s.sources);
@@ -36,6 +38,44 @@ export function AgendaPage() {
 
   const common = { todayKey, selectedDay: nav.selectedDay, tasks, events, filter: nav.filter, colorOf, onSelectDay: nav.selectDay, onEditEvent: editEvent, onEditTask: editTask };
 
+  const dayPanel = (inline: boolean) => (
+    <DaySidePanel
+      inline={inline}
+      dayKey={nav.selectedDay}
+      tasks={selected.tasks}
+      events={selected.events}
+      colorOf={colorOf}
+      sourceName={(ev) => (ev.source_id ? sourceNames.get(ev.source_id) : undefined)}
+      onAddEvent={() => createEventAt(nav.selectedDay)}
+      onAddTask={() => openTaskModal({ prefillDeadline: parseDayKey(nav.selectedDay, 12).toISOString() })}
+      onEditEvent={editEvent}
+      onDeleteEvent={(ev) => removeEvent(ev.id)}
+      onEditTask={editTask}
+      onDeleteTask={(t) => moveToTrash(t.id)}
+      onToggleTask={(t) => setStatus(t.id, t.status === 'done' ? 'todo' : 'done')}
+    />
+  );
+
+  if (phone) {
+    // Téléphone : mois compact + liste du jour en dessous (une seule zone qui défile), ou grille du jour.
+    return (
+      <div className="dot-grid" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%', position: 'relative' }}>
+        <AgendaToolbar nav={nav} onNewEvent={() => createEventAt(nav.selectedDay)} onImport={() => setImportOpen(true)} />
+        {nav.view === 'month' ? (
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+            <MonthView {...common} compact anchor={nav.anchor} onCreateOnDay={(key) => createEventAt(key)} />
+            {dayPanel(true)}
+          </div>
+        ) : (
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: 8 }}>
+            <TimeGridView {...common} days={nav.days} onCreateAt={createEventAt} />
+          </div>
+        )}
+        {importOpen && <ImportCalendarModal onClose={() => setImportOpen(false)} />}
+      </div>
+    );
+  }
+
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden', height: '100%' }}>
       <div className="dot-grid" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -48,20 +88,7 @@ export function AgendaPage() {
         )}
       </div>
 
-      <DaySidePanel
-        dayKey={nav.selectedDay}
-        tasks={selected.tasks}
-        events={selected.events}
-        colorOf={colorOf}
-        sourceName={(ev) => (ev.source_id ? sourceNames.get(ev.source_id) : undefined)}
-        onAddEvent={() => createEventAt(nav.selectedDay)}
-        onAddTask={() => openTaskModal({ prefillDeadline: parseDayKey(nav.selectedDay, 12).toISOString() })}
-        onEditEvent={editEvent}
-        onDeleteEvent={(ev) => removeEvent(ev.id)}
-        onEditTask={editTask}
-        onDeleteTask={(t) => moveToTrash(t.id)}
-        onToggleTask={(t) => setStatus(t.id, t.status === 'done' ? 'todo' : 'done')}
-      />
+      {dayPanel(false)}
 
       {importOpen && <ImportCalendarModal onClose={() => setImportOpen(false)} />}
     </div>

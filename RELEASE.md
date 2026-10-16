@@ -1,7 +1,7 @@
 # Publier My Agenda sur GitHub et livrer les mises à jour
 
 Résumé : le code est sur GitHub. Quand tu envoies un **tag de version** (`v0.6.1`…),
-GitHub construit l'installeur **Windows** (.exe) et **macOS** (.dmg), les signe et les publie dans **Releases**.
+GitHub construit l'installeur **Windows** (.exe), **macOS** (.dmg) et l'application **Android** (.apk), les signe et les publie dans **Releases**.
 Les applications installées le voient (au démarrage puis toutes les 6 h) et proposent
 la mise à jour : notification, bandeau, bouton dans **Réglages → Mises à jour**.
 
@@ -43,6 +43,16 @@ Sur GitHub : dépôt → **Settings → Secrets and variables → Actions → Ne
 La clé **publique** correspondante est déjà dans `src-tauri/tauri.conf.json` (`plugins.updater.pubkey`) :
 l'application refuse tout installeur qui n'a pas été signé avec ta clé privée.
 
+### Secrets Android (2 de plus)
+
+| Nom | Valeur |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | tout le contenu de `D:\ToDoList\_cles-my-agenda\my-agenda-android.jks.base64.txt` |
+| `ANDROID_KEYSTORE_PASSWORD` | le contenu de `D:\ToDoList\_cles-my-agenda\mot-de-passe-android.txt` |
+
+> ⚠️ Même règle que pour la clé de mise à jour : **ne perds jamais `my-agenda-android.jks`**.
+> Android n'installe une nouvelle version par-dessus l'ancienne que si elle est signée avec la même clé.
+
 ## 3. Publier une version
 
 **Toute première version (0.6.0, déjà dans package.json)** : onglet **Actions → Publier une version
@@ -76,6 +86,13 @@ c'est à partir de lui que les mises à jour suivantes arriveront.
 
 Un simple `git push` (sans tag) ne publie rien : il lance seulement les vérifications
 (types, tests, compilation).
+
+### Tester Android avant de publier
+
+Onglet **Actions → Android (APK) → Run workflow** (branche au choix). Après ~15 min, ouvre l'exécution :
+en bas, rubrique **Artifacts**, télécharge `my-agenda-android-test` (un .zip qui contient l'APK),
+envoie l'APK sur ton téléphone (câble USB, Google Drive, mail…) et installe-le comme ci-dessous.
+Rien n'est publié : tes utilisateurs ne voient rien.
 
 ## 4. Installer chez un nouvel utilisateur
 
@@ -118,6 +135,31 @@ continuent. Pour quitter : **⌘Q**.
 Ces messages n'apparaissent qu'à la première installation : les mises à jour suivantes
 passent par l'application, sans rien débloquer.
 
+### Android
+
+1. Sur le téléphone, ouvrir `https://github.com/TON-PSEUDO/my-agenda/releases/latest` dans le navigateur
+   (Chrome…) et toucher `My.Agenda_…_android.apk`.
+2. Une fois le téléchargement fini, toucher le fichier (notification « Téléchargement terminé » ou
+   application **Fichiers → Téléchargements**).
+3. Android refuse d'abord : **Paramètres → Autoriser cette source** (autorise le navigateur à installer
+   des applications), puis revenir et toucher **Installer**.
+4. Si **Play Protect** affiche « Application inconnue » : **Plus de détails → Installer quand même**
+   (l'application n'est pas sur le Play Store, c'est normal).
+5. Au premier lancement, **autoriser les notifications** (sinon pas de rappels).
+
+Sur Android, les mises à jour ne s'installent pas toutes seules : **Réglages → Mises à jour →
+Télécharger la mise à jour** ouvre le nouvel APK dans le navigateur, il suffit de le toucher puis
+**Mettre à jour**. Les données sont conservées (même clé de signature).
+
+### iPhone (plus tard)
+
+Le code est prêt pour iOS (interface téléphone, rappels programmés dans le système, 60 au maximum
+comme l'impose iOS). Il manque la partie Apple, qui demande un **compte Apple Developer (99 $/an)** :
+1. Sur un Mac avec Xcode : `npx tauri ios init`, puis choisir l'équipe (Team) du compte développeur.
+2. `npx tauri ios build` → fichier .ipa, envoyé sur **App Store Connect** puis distribué par
+   **TestFlight** (lien d'invitation) ou l'App Store.
+3. Ajouter ensuite une étape iOS au workflow GitHub (runner macOS + certificats en secrets).
+
 ## 5. Ce que voit l'utilisateur quand une version sort
 
 - une notification « Nouvelle version disponible » (une seule fois par version) ;
@@ -140,6 +182,11 @@ passent par l'application, sans rien débloquer.
   Envoie la capture de l'erreur ; en attendant, tu peux publier le brouillon à la main
   (Releases → Edit → Publish) pour les utilisateurs Windows… mais sans `latest.json`,
   les applications ne verront pas la mise à jour : mieux vaut corriger et relancer.
+- **Android échoue mais Windows/macOS réussissent** → la version est quand même publiée, sans APK
+  (avertissement dans l'étape `publish`). Corrige, puis publie une nouvelle version.
+- **Android : « Application non installée »** → l'APK n'est pas signé avec la même clé que la version
+  déjà installée (secrets Android modifiés ?). Il faut désinstaller puis réinstaller (les données
+  locales du téléphone sont perdues, celles synchronisées avec ton compte reviennent).
 - **Mac : « My Agenda est endommagé et ne peut pas être ouvert »** → c'est le blocage de
   première installation : utiliser la commande `xattr` ci-dessus.
 - En mode développement (`npm run tauri dev`), la recherche de mise à jour est désactivée.

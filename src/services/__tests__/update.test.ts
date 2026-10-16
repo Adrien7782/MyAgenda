@@ -11,7 +11,7 @@ function memorySettings(): SettingsRepository {
 function setup(update: AppUpdate | null) {
   const sent: string[] = [];
   const notifier: Notifier = { ensurePermission: async () => true, notify: async (_t, body) => { sent.push(body); } };
-  const updater: Updater = { supported: true, check: async () => update, install: async () => undefined };
+  const updater: Updater = { supported: true, mode: 'auto', check: async () => update, install: async () => undefined };
   const service = createUpdateService(updater, createSettingsService(memorySettings()), notifier);
   return { service, sent };
 }

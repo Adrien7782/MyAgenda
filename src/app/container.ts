@@ -4,7 +4,7 @@
  * - Navigateur  → dépôts en mémoire avec données de démo
  * - Comptes et synchronisation → Supabase (configuré par le fichier .env)
  */
-import { isTauri } from '../infrastructure/platform';
+import { isDesktopTauri, isMobileApp, isTauri } from '../infrastructure/platform';
 import { SqliteTaskRepository } from '../infrastructure/sqlite/sqliteTaskRepository';
 import { SqliteEventRepository } from '../infrastructure/sqlite/sqliteEventRepository';
 import { SqliteCalendarSourceRepository, SqliteSettingsRepository } from '../infrastructure/sqlite/sqliteSettingsRepositories';
@@ -43,6 +43,7 @@ const databases = isTauri() ? new SqliteDatabases() : new MemoryDatabases();
 const sync = createSyncService(new SupabaseRemoteStore(), repositories);
 const settings = createSettingsService(repositories.settings);
 const notifier = new TauriNotifier();
+const http = new AppHttpClient();
 
 export const services = {
   tasks: createTaskService(repositories.tasks),
@@ -52,7 +53,7 @@ export const services = {
   calendarImport: createCalendarImportService({
     sources: repositories.sources,
     events: repositories.events,
-    http: new AppHttpClient(),
+    http,
     parse: parseIcs,
   }),
   sync,
@@ -60,10 +61,15 @@ export const services = {
   databases,
   notifier,
   /** Mises à jour de l'application installée (GitHub Releases). */
-  updates: createUpdateService(createUpdater(), settings, notifier),
+  updates: createUpdateService(createUpdater(http), settings, notifier),
   reminders: createReminderService(createReminderScheduler(), repositories.settings),
   /** Synchronisation instantanée entre la grande fenêtre et le mini. */
   changeBus: new TauriChangeBus(),
 };
 
-export const isDesktopApp = isTauri();
+/** Application installée (vraie base SQLite), sur ordinateur ou téléphone. */
+export const isInstalledApp = isTauri();
+/** Application installée sur un ordinateur (mini, zone de notification, démarrage automatique…). */
+export const isDesktopApp = isDesktopTauri();
+/** Application installée sur un téléphone. */
+export const isPhoneApp = isMobileApp();

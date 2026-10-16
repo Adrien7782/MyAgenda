@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { OPEN_HINT, openGesture } from '../../shared/device';
 import type { Task, TaskDraft, TaskStatus } from '../../domain/task/task';
 import { isOverdue } from '../../domain/task/taskRules';
 import { computeProgress, tasksInPeriod, type ProgressPeriod } from '../../domain/task/taskStats';
@@ -115,7 +116,7 @@ export function MiniDashboard() {
             const done = t.status === 'done';
             const late = isOverdue(t, now.getTime());
             return (
-              <div key={t.id} onDoubleClick={() => openTaskModal({ taskId: t.id })} title="Double-clic pour modifier"
+              <div key={t.id} {...openGesture(() => openTaskModal({ taskId: t.id }))} title={OPEN_HINT}
                 style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 6px', borderRadius: 8, background: late ? 'var(--danger-bg)' : 'transparent' }}>
                 <StatusCheck size={16} color={done ? 'var(--success)' : STATUS_COLOR[t.status]} done={done}
                   title={done ? 'Rouvrir' : 'Terminer'} onClick={() => setStatus(t.id, done ? 'todo' : 'done')} />

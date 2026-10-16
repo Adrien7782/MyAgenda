@@ -14,8 +14,8 @@ export function SettingsSection({ title, description, id, children }: { title: s
 
 export function SettingRow({ label, description, children }: { label: string; description?: string; children: ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', borderRadius: 12, background: 'var(--surface-el)', border: '1px solid var(--border)' }}>
-      <div style={{ flex: 1 }}>
+    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px 16px', padding: '14px 18px', borderRadius: 12, background: 'var(--surface-el)', border: '1px solid var(--border)' }}>
+      <div style={{ flex: '1 1 220px', minWidth: 0 }}>
         <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500 }}>{label}</div>
         {description && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 3 }}>{description}</div>}
       </div>

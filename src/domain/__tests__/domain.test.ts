@@ -91,3 +91,14 @@ describe('couleurs par titre', () => {
     expect(colorForTitle(withTitleColor(rules, 'CM Réseaux', null), 'CM Réseaux')).toBeUndefined();
   });
 });
+
+import { compareVersions, isNewerVersion } from '../shared/version';
+
+describe('numéros de version', () => {
+  it('comparaison numérique, pas alphabétique', () => {
+    expect(isNewerVersion('0.10.0', '0.9.3')).toBe(true);
+    expect(isNewerVersion('v0.7.2', '0.7.2')).toBe(false);
+    expect(isNewerVersion('1.0.0', '0.99.99')).toBe(true);
+    expect(compareVersions('0.7', '0.7.0')).toBe(0);
+  });
+});

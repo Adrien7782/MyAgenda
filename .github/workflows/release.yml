@@ -7,7 +7,8 @@
 #
 # Étapes :
 #   1. prepare  : tests, vérifications, création de la Release en brouillon
-#   2. build    : Windows (.exe) et macOS (.dmg, Intel + Apple Silicon) construits en parallèle
+#   2. build    : Windows (.exe) et macOS (.dmg, Intel + Apple Silicon) construits en parallèle,
+#      android  : APK signé (workflow android.yml) — s'il échoue, la version sort sans Android
 #   3. publish  : latest.json (fichier lu par les applications pour se mettre à jour),
 #                 puis publication de la Release. Rien n'est visible tant que tout n'a pas réussi.
 
@@ -164,8 +165,17 @@ jobs:
           # latest.json est assemblé une seule fois à la fin (job publish), pour les deux systèmes.
           includeUpdaterJson: false
 
+  android:
+    needs: prepare
+    uses: ./.github/workflows/android.yml
+    with:
+      release_id: ${{ needs.prepare.outputs.release_id }}
+    secrets: inherit
+
   publish:
-    needs: [prepare, build]
+    needs: [prepare, build, android]
+    # Windows et macOS sont obligatoires ; Android est ajouté s'il a réussi.
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -200,6 +210,9 @@ jobs:
             }
 
             const windows = await entry((n) => /x64-setup\.exe$/i.test(n), 'Windows');
+            // Android : pas de signature de mise à jour (Android vérifie lui-même la signature de l'APK).
+            const apk = assets.find((a) => /_android\.apk$/i.test(a.name));
+            if (!apk) core.warning("Pas d'APK Android dans cette version (construction Android en échec ?).");
             const mac = await entry((n) => /\.app\.tar\.gz$/i.test(n), 'macOS');
             // Notes affichées dans l'application : la partie avant "---" (sans le mode d'emploi d'installation).
             const body = fs.existsSync('CHANGELOG.md')
@@ -213,6 +226,7 @@ jobs:
                 'windows-x86_64': windows,
                 'darwin-x86_64': mac,
                 'darwin-aarch64': mac,
+                ...(apk ? { android: { signature: '', url: finalUrl(apk.name) } } : {}),
               },
             };
 

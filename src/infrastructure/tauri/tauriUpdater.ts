@@ -1,6 +1,8 @@
 import type { Update } from '@tauri-apps/plugin-updater';
 import type { AppUpdate, Updater, UpdateProgress } from '../../services/ports';
-import { isTauri } from '../platform';
+import { isAndroid, isDesktopTauri, isMobileApp } from '../platform';
+import { AndroidUpdater } from './androidUpdater';
+import type { HttpClient } from '../../services/ports';
 
 /**
  * Mises à jour via tauri-plugin-updater.
@@ -8,8 +10,10 @@ import { isTauri } from '../platform';
  * le plugin refuse tout installeur dont la signature ne correspond pas à cette clé.
  */
 export class TauriUpdater implements Updater {
+  readonly mode = 'auto' as const;
   // En mode développement (`npm run tauri dev`) il n'y a pas d'installation à remplacer.
-  readonly supported = isTauri() && !import.meta.env.DEV;
+  // Téléphone : pas de remplacement automatique (voir AndroidUpdater).
+  readonly supported = isDesktopTauri() && !import.meta.env.DEV;
   private pending: Update | null = null;
 
   async check(): Promise<AppUpdate | null> {
@@ -40,10 +44,13 @@ export class TauriUpdater implements Updater {
 /** Navigateur (mode démo) : pas de mise à jour. */
 export class NoopUpdater implements Updater {
   readonly supported = false;
+  readonly mode = 'auto' as const;
   async check(): Promise<AppUpdate | null> { return null; }
   async install(): Promise<void> { throw new Error('Mise à jour indisponible dans le navigateur.'); }
 }
 
-export function createUpdater(): Updater {
-  return isTauri() ? new TauriUpdater() : new NoopUpdater();
+export function createUpdater(http: HttpClient): Updater {
+  if (isDesktopTauri()) return new TauriUpdater();
+  if (isMobileApp() && isAndroid()) return new AndroidUpdater(http, import.meta.env.VITE_GITHUB_REPOSITORY);
+  return new NoopUpdater();
 }

@@ -305,3 +305,22 @@ select.ui-input { cursor: pointer; }
 .focus-round--main.focus-round--sm { width: 42px; height: 42px; }
 @keyframes focus-done { 0% { transform: scale(.96); opacity: .6; } 100% { transform: none; opacity: 1; } }
 .focus-live { animation: pulse 1.6s ease-in-out infinite; }
+
+/* ── Téléphone ── */
+html, body { -webkit-tap-highlight-color: transparent; }
+@media (hover: none) {
+  /* Pas de survol au doigt : les petites actions sont dans la fenêtre de modification. */
+  .hover-actions { display: none !important; }
+}
+.phone-app { overscroll-behavior: none; }
+.phone-app input, .phone-app textarea, .phone-app select { font-size: 16px; }
+.bottom-nav-item { -webkit-user-select: none; user-select: none; transition: color .15s; }
+.bottom-nav-item:active { opacity: .7; }
+.fab {
+  position: absolute; right: 16px; bottom: 16px; z-index: 20; width: 54px; height: 54px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-grad, var(--accent)); color: var(--on-accent); box-shadow: var(--btn-shadow);
+}
+.fab:active { transform: scale(.95); }
+.h-scroll { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.h-scroll::-webkit-scrollbar { display: none; }

@@ -1,4 +1,5 @@
 import type { CalendarEvent } from '../../domain/event/event';
+import { OPEN_HINT, openGesture } from '../../shared/device';
 import type { Task } from '../../domain/task/task';
 import { formatTime } from '../../domain/shared/date';
 import { isAllDay } from '../../domain/event/eventRules';
@@ -8,8 +9,8 @@ import { TaskAgendaLabel, taskAgendaStyle, taskTooltip } from './TaskAgendaItem'
 export function EventChip({ event, color, onOpen }: { event: CalendarEvent; color: string; onOpen: () => void }) {
   return (
     <div
-      title={`${event.title} — double-clic pour modifier`}
-      onDoubleClick={(e) => { e.stopPropagation(); onOpen(); }}
+      title={`${event.title} — ${OPEN_HINT.toLowerCase()}`}
+      {...openGesture(onOpen, true)}
       style={{
         display: 'flex', alignItems: 'center', gap: 4, borderRadius: 4, padding: '1px 5px', minWidth: 0, cursor: 'pointer',
         background: `color-mix(in srgb, ${color} 22%, var(--bg))`,
@@ -28,7 +29,7 @@ export function TaskChip({ task, onOpen }: { task: Task; onOpen: () => void }) {
   return (
     <div
       title={taskTooltip(task)}
-      onDoubleClick={(e) => { e.stopPropagation(); onOpen(); }}
+      {...openGesture(onOpen, true)}
       style={{ borderRadius: 4, padding: '1px 5px', minWidth: 0, cursor: 'pointer', ...taskAgendaStyle(task) }}
     >
       <TaskAgendaLabel task={task} />

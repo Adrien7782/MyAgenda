@@ -150,6 +150,13 @@ export interface ScheduledNotification {
 
 /** Planificateur natif : déclenche les notifications à l'heure, même application en arrière-plan. */
 export interface ReminderScheduler {
+  /**
+   * Jusqu'où planifier à l'avance. Ordinateur : 48 h (le planning est recalculé tant que l'app tourne).
+   * Téléphone : plusieurs semaines, car l'app peut rester fermée longtemps.
+   */
+  readonly horizonMs?: number;
+  /** Nombre maximal de notifications programmées (iOS en accepte 64). */
+  readonly maxItems?: number;
   /** Remplace le planning complet. */
   schedule(list: ScheduledNotification[]): Promise<void>;
   /** Appelé avec la clé de chaque rappel envoyé. */
@@ -176,6 +183,11 @@ export interface UpdateProgress {
 export interface Updater {
   /** Faux dans le navigateur et en mode développement : il n'y a rien à mettre à jour. */
   readonly supported: boolean;
+  /**
+   * auto : téléchargement, installation et redémarrage dans l'application (Windows, macOS).
+   * download : le fichier d'installation est ouvert dans le navigateur, l'utilisateur l'installe (Android).
+   */
+  readonly mode: 'auto' | 'download';
   check(): Promise<AppUpdate | null>;
   /** Télécharge et installe la version trouvée par check(), puis redémarre l'application. */
   install(onProgress?: (p: UpdateProgress) => void): Promise<void>;

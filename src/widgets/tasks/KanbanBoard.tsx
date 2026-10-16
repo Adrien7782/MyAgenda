@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  DndContext, DragOverlay, KeyboardSensor, PointerSensor, pointerWithin, rectIntersection,
+  DndContext, DragOverlay, KeyboardSensor, MouseSensor, TouchSensor, pointerWithin, rectIntersection,
   useDraggable, useDroppable, useSensor, useSensors,
   type CollisionDetection, type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core';
@@ -9,6 +9,7 @@ import { TASK_STATUSES } from '../../domain/task/task';
 import { STATUS_COLOR, STATUS_LABEL_PLURAL } from '../../shared/presentation/taskPresentation';
 import { Dot } from '../../shared/ui';
 import { useTaskStore } from '../../store/taskStore';
+import { usePhoneLayout } from '../../shared/hooks/usePhoneLayout';
 import { TaskCard, type TaskCardActions } from './TaskCard';
 import { useTaskCardActions } from './useTaskCardActions';
 
@@ -30,11 +31,14 @@ export function KanbanBoard({ tasks }: { tasks: Task[] }) {
   const setStatus = useTaskStore((s) => s.setStatus);
   const actions = useTaskCardActions();
   const sensors = useSensors(
-    // 6 px de mouvement avant de démarrer : un simple clic (case, badge, double-clic) reste un clic.
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    // Souris : 6 px de mouvement avant de démarrer, un simple clic (case, badge, double-clic) reste un clic.
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    // Doigt : appui maintenu 250 ms pour attraper une carte ; un glissement rapide fait défiler.
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(KeyboardSensor),
   );
   const activeTask = tasks.find((t) => t.id === activeId) ?? null;
+  const phone = usePhoneLayout();
 
   function onDragStart(e: DragStartEvent) {
     setActiveId(String(e.active.id));
@@ -50,7 +54,7 @@ export function KanbanBoard({ tasks }: { tasks: Task[] }) {
 
   return (
     <DndContext sensors={sensors} collisionDetection={collision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
-      <div style={{ display: 'flex', gap: 12, minHeight: '100%', overflowX: 'auto', padding: '4px 2px' }}>
+      <div style={{ display: 'flex', gap: 12, minHeight: '100%', overflowX: 'auto', padding: '4px 2px', scrollSnapType: phone ? 'x mandatory' : undefined }}>
         {TASK_STATUSES.map((status) => (
           <KanbanColumn
             key={status}
@@ -80,6 +84,7 @@ function KanbanColumn({ status, tasks, actions, dragging }: {
   dragging: Task | null;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: `col-${status}`, data: { status } });
+  const phone = usePhoneLayout();
   const color = STATUS_COLOR[status];
   const isSource = dragging?.status === status;
   // Pendant un glisser, les 4 zones sont en surbrillance ; celle survolée encore plus.
@@ -89,7 +94,7 @@ function KanbanColumn({ status, tasks, actions, dragging }: {
     <div
       ref={setNodeRef}
       style={{
-        minWidth: 190, flex: 1, display: 'flex', flexDirection: 'column', gap: 8, borderRadius: 12, padding: 6,
+        minWidth: phone ? '82%' : 190, flex: 1, scrollSnapAlign: 'start', display: 'flex', flexDirection: 'column', gap: 8, borderRadius: 12, padding: 6,
         background: isOver
           ? `color-mix(in srgb, ${color} 16%, var(--surface))`
           : highlighted ? `color-mix(in srgb, ${color} 6%, transparent)` : 'transparent',

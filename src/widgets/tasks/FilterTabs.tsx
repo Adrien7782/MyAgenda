@@ -1,6 +1,7 @@
 import type { Task } from '../../domain/task/task';
 import { STATUS_LABEL_PLURAL } from '../../shared/presentation/taskPresentation';
 import { useUiStore, type FilterTab } from '../../store/uiStore';
+import { usePhoneLayout } from '../../shared/hooks/usePhoneLayout';
 
 const TABS: { key: FilterTab; label: string }[] = [
   { key: 'all', label: 'Toutes' },
@@ -13,10 +14,11 @@ const TABS: { key: FilterTab; label: string }[] = [
 export function FilterTabs({ tasks }: { tasks: Task[] }) {
   const filterTab = useUiStore((s) => s.filterTab);
   const setFilterTab = useUiStore((s) => s.setFilterTab);
+  const phone = usePhoneLayout();
   const count = (key: FilterTab) => (key === 'all' ? tasks.length : tasks.filter((t) => t.status === key).length);
 
   return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: phone ? 'nowrap' : 'wrap', flexShrink: 0 }}>
       {TABS.map(({ key, label }) => {
         const active = filterTab === key;
         return (

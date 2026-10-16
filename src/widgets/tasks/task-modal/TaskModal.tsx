@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Task } from '../../../domain/task/task';
+import { TrashIcon } from '../../../shared/icons/Icons';
 import { Button, Field, FieldRow, Modal, OptionGroup, TextArea, TextInput } from '../../../shared/ui';
 import { PRIORITY_OPTIONS, RECURRENCE_OPTIONS, STATUS_OPTIONS } from '../../../shared/presentation/taskPresentation';
 import { useTaskStore } from '../../../store/taskStore';
@@ -28,6 +29,7 @@ function TaskModalContent({ task, prefillDeadline, onClose }: {
   onClose: () => void;
 }) {
   const saveDraft = useTaskStore((s) => s.saveDraft);
+  const moveToTrash = useTaskStore((s) => s.moveToTrash);
   const form = useTaskForm(task, prefillDeadline);
   const { fields, set } = form;
   const [saving, setSaving] = useState(false);
@@ -65,6 +67,12 @@ function TaskModalContent({ task, prefillDeadline, onClose }: {
       width={560}
       footer={
         <>
+          {task && !error && (
+            <Button variant="danger" icon={<TrashIcon size={13} />} title="Mettre à la corbeille" style={{ marginRight: 'auto' }}
+              onClick={() => { void moveToTrash(task.id); onClose(); }}>
+              Corbeille
+            </Button>
+          )}
           {error && <span style={{ color: 'var(--danger)', fontSize: 'var(--text-xs)', marginRight: 'auto' }}>{error}</span>}
           <Button onClick={onClose}>Annuler</Button>
           <Button variant="primary" onClick={save} disabled={!form.isValid || saving}>

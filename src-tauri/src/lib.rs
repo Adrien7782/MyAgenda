@@ -1,22 +1,28 @@
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+#[cfg(desktop)]
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::Deserialize;
+#[cfg(desktop)]
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, WindowEvent,
 };
+#[cfg(desktop)]
 use tauri_plugin_notification::NotificationExt;
 
 // ── Rappels ──────────────────────────────────────────────────────────────────
-// L'interface calcule les prochains rappels et les confie au Rust ; un fil d'exécution
-// natif les déclenche à l'heure, même si la fenêtre est cachée (WebView ralentie par Windows).
+// Ordinateur : l'interface calcule les prochains rappels et les confie au Rust ; un fil
+// d'exécution natif les déclenche à l'heure, même si la fenêtre est cachée.
+// Téléphone : les rappels sont confiés directement au système (Android / iOS) par l'interface,
+// car l'application peut être arrêtée à tout moment en arrière-plan.
 
 #[derive(Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 struct ScheduledReminder {
     key: String,
     at_ms: i64,
@@ -34,6 +40,7 @@ struct ReminderState {
 struct Reminders(Mutex<ReminderState>);
 
 /// Rappels manqués de plus de 15 min (PC en veille, appli fermée…) : on ne les envoie plus.
+#[cfg(desktop)]
 const REMINDER_GRACE_MS: i64 = 15 * 60 * 1000;
 
 #[tauri::command]
@@ -43,10 +50,12 @@ fn schedule_reminders(state: tauri::State<Reminders>, reminders: Vec<ScheduledRe
     st.queue = reminders.into_iter().filter(|r| !st.fired.contains(&r.key)).collect();
 }
 
+#[cfg(desktop)]
 fn now_ms() -> i64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
 }
 
+#[cfg(desktop)]
 fn start_reminder_loop(app: AppHandle) {
     std::thread::spawn(move || loop {
         std::thread::sleep(Duration::from_secs(5));
@@ -82,6 +91,7 @@ fn set_close_to_tray(state: tauri::State<CloseToTray>, enabled: bool) {
 }
 
 /// Ré-affiche la grande fenêtre (et le mini s'il existe).
+#[cfg(desktop)]
 fn show_app(app: &AppHandle) {
     for label in ["main", "mini"] {
         if let Some(w) = app.get_webview_window(label) {
@@ -95,6 +105,7 @@ fn show_app(app: &AppHandle) {
 }
 
 /// Cache toutes les fenêtres : l'application continue de tourner (rappels, synchronisation).
+#[cfg(desktop)]
 fn hide_app(app: &AppHandle) {
     for label in ["main", "mini"] {
         if let Some(w) = app.get_webview_window(label) {
@@ -121,14 +132,39 @@ pub fn run() {
             .plugin(tauri_plugin_process::init());
     }
 
-    builder
+    builder = builder
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_sql::Builder::new().build())
         // Téléchargement des emplois du temps (.ics) sans blocage CORS
         .plugin(tauri_plugin_http::init())
+        // Ouvrir un lien dans le navigateur (téléchargement d'une nouvelle version sur téléphone…)
+        .plugin(tauri_plugin_opener::init())
         .manage(CloseToTray(AtomicBool::new(true)))
         .manage(Reminders(Mutex::new(ReminderState::default())))
-        .invoke_handler(tauri::generate_handler![set_close_to_tray, schedule_reminders])
+        .invoke_handler(tauri::generate_handler![set_close_to_tray, schedule_reminders]);
+
+    #[cfg(desktop)]
+    {
+        builder = desktop_setup(builder);
+    }
+
+    builder
+        .build(tauri::generate_context!())
+        .expect("erreur au lancement de My Agenda")
+        .run(|_app, _event| {
+            // macOS : clic sur l'icône du Dock alors que la fenêtre est cachée → on la ré-affiche.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { has_visible_windows: false, .. } = _event {
+                show_app(_app);
+            }
+        });
+}
+
+/// Ordinateur uniquement : rappels natifs, icône dans la zone de notification / barre des menus,
+/// fermeture dans l'icône, démarrage discret.
+#[cfg(desktop)]
+fn desktop_setup(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
+    builder
         .setup(|app| {
             start_reminder_loop(app.handle().clone());
 
@@ -186,13 +222,4 @@ pub fn run() {
                 _ => {}
             }
         })
-        .build(tauri::generate_context!())
-        .expect("erreur au lancement de My Agenda")
-        .run(|_app, _event| {
-            // macOS : clic sur l'icône du Dock alors que la fenêtre est cachée → on la ré-affiche.
-            #[cfg(target_os = "macos")]
-            if let tauri::RunEvent::Reopen { has_visible_windows: false, .. } = _event {
-                show_app(_app);
-            }
-        });
 }

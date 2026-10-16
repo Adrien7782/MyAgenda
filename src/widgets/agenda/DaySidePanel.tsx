@@ -1,4 +1,5 @@
 import type { CalendarEvent } from '../../domain/event/event';
+import { OPEN_HINT, openGesture } from '../../shared/device';
 import type { Task } from '../../domain/task/task';
 import { formatDayLabel, formatDuration, formatTime } from '../../domain/shared/date';
 import { isAllDay } from '../../domain/event/eventRules';
@@ -22,12 +23,16 @@ interface DaySidePanelProps {
   onEditTask: (t: Task) => void;
   onDeleteTask: (t: Task) => void;
   onToggleTask: (t: Task) => void;
+  /** Téléphone : liste pleine largeur sous le calendrier (pas de panneau latéral). */
+  inline?: boolean;
 }
 
 /** Détail du jour sélectionné. Double-clic sur une carte = modifier. */
 export function DaySidePanel(p: DaySidePanelProps) {
   return (
-    <aside style={{ width: 280, minWidth: 280, borderLeft: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <aside style={p.inline
+      ? { borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }
+      : { width: 280, minWidth: 280, borderLeft: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>{formatDayLabel(p.dayKey)}</h2>
         <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 2 }}>
@@ -35,7 +40,7 @@ export function DaySidePanel(p: DaySidePanelProps) {
         </p>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ flex: 1, overflowY: p.inline ? 'visible' : 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {p.events.length > 0 && (
           <section>
             <SectionTitle>Évènements</SectionTitle>
@@ -44,7 +49,7 @@ export function DaySidePanel(p: DaySidePanelProps) {
                 const color = p.colorOf(ev);
                 const source = p.sourceName(ev);
                 return (
-                  <div key={ev.id} className="hoverable" onDoubleClick={() => p.onEditEvent(ev)} title="Double-clic pour modifier"
+                  <div key={ev.id} className="hoverable" {...openGesture(() => p.onEditEvent(ev))} title={OPEN_HINT}
                     style={{ position: 'relative', padding: '8px 10px', borderRadius: 8, background: 'var(--surface-el)', border: '1px solid var(--border)', borderLeft: `3px solid ${color}`, cursor: 'default' }}>
                     <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500, paddingRight: 48 }}>{ev.title}</div>
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 2 }}>
@@ -76,7 +81,7 @@ export function DaySidePanel(p: DaySidePanelProps) {
                 const color = agendaTaskColor(t);
                 const done = t.status === 'done';
                 return (
-                  <div key={t.id} className="hoverable" onDoubleClick={() => p.onEditTask(t)} title={t.priority ? `Priorité ${PRIORITY_LABEL[t.priority].toLowerCase()} — double-clic pour modifier` : 'Double-clic pour modifier'}
+                  <div key={t.id} className="hoverable" {...openGesture(() => p.onEditTask(t))} title={t.priority ? `Priorité ${PRIORITY_LABEL[t.priority].toLowerCase()} — ${OPEN_HINT.toLowerCase()}` : OPEN_HINT}
                     style={{
                       position: 'relative', padding: '8px 10px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8,
                       background: `color-mix(in srgb, ${color} ${done ? 8 : 16}%, var(--surface-el))`,
@@ -110,7 +115,7 @@ export function DaySidePanel(p: DaySidePanelProps) {
         </div>
       </div>
 
-      <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+      <div style={{ padding: p.inline ? '10px 14px 84px' : '10px 14px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: p.inline ? 'row' : 'column', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
         <Button size="sm" icon={<PlusIcon size={12} />} onClick={p.onAddEvent} style={{ justifyContent: 'flex-start' }}>Ajouter un évènement</Button>
         <Button size="sm" icon={<PlusIcon size={12} />} onClick={p.onAddTask} style={{ justifyContent: 'flex-start' }}>Ajouter une tâche</Button>
       </div>

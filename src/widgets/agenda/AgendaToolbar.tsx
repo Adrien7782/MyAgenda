@@ -1,9 +1,44 @@
 import { ChevronLeftIcon, ChevronRightIcon, LinkIcon, PlusIcon } from '../../shared/icons/Icons';
 import { Button, IconButton, PageHeader, SegmentedControl } from '../../shared/ui';
+import { usePhoneLayout } from '../../shared/hooks/usePhoneLayout';
 import type { AgendaView } from '../../store/settingsStore';
 import type { AgendaFilter, AgendaNavigation } from './useAgendaNavigation';
 
+const FILTERS: { value: AgendaFilter; label: string }[] = [{ value: 'all', label: 'Tout' }, { value: 'tasks', label: 'Tâches' }, { value: 'events', label: 'Évènements' }];
+
 export function AgendaToolbar({ nav, onNewEvent, onImport }: { nav: AgendaNavigation; onNewEvent: () => void; onImport: () => void }) {
+  const phone = usePhoneLayout();
+
+  if (phone) {
+    // Téléphone : Mois (calendrier compact + liste du jour) ou Jour (grille horaire). Nouvel évènement : bouton « + » flottant.
+    return (
+      <>
+        <PageHeader
+          title={<span style={{ textTransform: 'capitalize' }}>{nav.label}</span>}
+          actions={
+            <>
+              <IconButton label="Précédent" size={34} onClick={() => nav.move(-1)}><ChevronLeftIcon size={16} /></IconButton>
+              <IconButton label="Suivant" size={34} onClick={() => nav.move(1)}><ChevronRightIcon size={16} /></IconButton>
+              <Button size="sm" onClick={nav.goToday}>Auj.</Button>
+            </>
+          }
+        >
+          <SegmentedControl<AgendaView>
+            size="sm"
+            value={nav.view === 'week' ? 'day' : nav.view}
+            onChange={nav.changeView}
+            options={[{ value: 'month', label: 'Mois' }, { value: 'day', label: 'Jour' }]}
+          />
+          <SegmentedControl<AgendaFilter> size="sm" value={nav.filter} onChange={nav.setFilter} options={FILTERS} />
+          <IconButton label="Importer un emploi du temps (.ics)" size={30} onClick={onImport}><LinkIcon size={14} /></IconButton>
+        </PageHeader>
+        <button type="button" className="fab" aria-label="Nouvel évènement" onClick={onNewEvent}>
+          <PlusIcon size={24} />
+        </button>
+      </>
+    );
+  }
+
   return (
     <PageHeader
       title="Agenda"
@@ -27,12 +62,7 @@ export function AgendaToolbar({ nav, onNewEvent, onImport }: { nav: AgendaNaviga
         onChange={nav.changeView}
         options={[{ value: 'day', label: 'Jour' }, { value: 'week', label: 'Semaine' }, { value: 'month', label: 'Mois' }]}
       />
-      <SegmentedControl<AgendaFilter>
-        size="sm"
-        value={nav.filter}
-        onChange={nav.setFilter}
-        options={[{ value: 'all', label: 'Tout' }, { value: 'tasks', label: 'Tâches' }, { value: 'events', label: 'Évènements' }]}
-      />
+      <SegmentedControl<AgendaFilter> size="sm" value={nav.filter} onChange={nav.setFilter} options={FILTERS} />
     </PageHeader>
   );
 }

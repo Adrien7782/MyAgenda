@@ -13,10 +13,11 @@ const fmtMb = (bytes: number) => `${(bytes / 1_048_576).toFixed(1)} Mo`;
 export function UpdateSettings() {
   const { status, available, progress, error, lastCheckedAt, check, install } = useUpdateStore();
   const supported = services.updates.supported;
+  const downloadMode = services.updates.mode === 'download';
   const installing = status === 'installing';
 
   let statusText = 'My Agenda vérifie automatiquement au démarrage, puis toutes les 6 heures.';
-  if (!supported) statusText = 'Les mises à jour s’installent depuis l’application installée (.exe). En développement, récupère le code avec git pull.';
+  if (!supported) statusText = 'Les mises à jour s’installent depuis l’application installée. En développement, récupère le code avec git pull.';
   else if (status === 'checking') statusText = 'Recherche en cours…';
   else if (status === 'up-to-date' && lastCheckedAt) statusText = `Tu as la dernière version (vérifié à ${fmtTime(lastCheckedAt)}).`;
 
@@ -49,11 +50,13 @@ export function UpdateSettings() {
               </div>
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 3 }}>
                 {available.date ? `Publiée le ${fmtDate(available.date)} · ` : ''}
-                L’application redémarre toute seule après l’installation. Tes données ne sont pas touchées.
+                {downloadMode
+                  ? 'Le fichier s’ouvre dans ton navigateur : touche-le une fois téléchargé, puis « Mettre à jour ». Tes données sont conservées.'
+                  : 'L’application redémarre toute seule après l’installation. Tes données ne sont pas touchées.'}
               </div>
             </div>
             <Button variant="primary" icon={<DownloadIcon size={14} />} disabled={installing} onClick={() => void install()}>
-              {installing ? 'Installation…' : 'Installer et redémarrer'}
+              {downloadMode ? 'Télécharger la mise à jour' : installing ? 'Installation…' : 'Installer et redémarrer'}
             </Button>
           </div>
 

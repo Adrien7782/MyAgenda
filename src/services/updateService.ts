@@ -39,6 +39,7 @@ export function cleanReleaseNotes(notes: string | undefined): string[] {
 export function createUpdateService(updater: Updater, settings: SettingsService, notifier: Notifier) {
   return {
     supported: updater.supported,
+    mode: updater.mode,
     currentVersion: __APP_VERSION__,
 
     async check(opts: { notify: boolean }): Promise<AppUpdate | null> {

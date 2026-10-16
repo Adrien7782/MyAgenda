@@ -105,6 +105,21 @@ La croix cache l'app (réglage `close_to_tray`, appliqué côté Rust via la com
 rappels et synchronisation continuent. Icône : clic = ouvrir, clic droit = Ouvrir / Mini / Quitter.
 Option « Lancer au démarrage de Windows » (`tauri-plugin-autostart`, argument `--minimized`).
 
+## Téléphone (Android, iOS plus tard)
+
+- Même code que l'ordinateur. `src-tauri/src/lib.rs` : tout ce qui n'existe que sur ordinateur
+  (icône de notification, mini, démarrage auto, mises à jour Tauri, rappels Rust) est en `#[cfg(desktop)]`.
+  Permissions : `capabilities/default.json` (partout) et `capabilities/desktop.json` (ordinateur).
+- Interface : `shared/hooks/usePhoneLayout` (téléphone ou fenêtre < 640 px) → `widgets/layout/BottomNav`,
+  fenêtres plein écran (`Modal`), agenda compact (`MonthView compact` + `DaySidePanel inline`),
+  bouton « + » flottant. `shared/device.ts` : un appui remplace le double-clic au doigt (`openGesture`).
+- Rappels : `MobileReminderScheduler` confie chaque rappel au système (plugin notification, `Schedule.at`)
+  sur 30 jours ; ils sonnent application fermée. Android : permission `USE_EXACT_ALARM`.
+- Mises à jour Android : `AndroidUpdater` lit `latest.json` (entrée `platforms.android`) et ouvre l'APK.
+- Construction : `.github/workflows/android.yml` génère le projet (`tauri android init`), puis
+  `scripts/android-prepare.mjs` ajoute la signature, les alarmes exactes et les marges système.
+  Le dossier `src-tauri/gen/android` n'est pas versionné : il est recréé à chaque construction.
+
 ## Icône
 
 Source : `src-tauri/icons/app-icon.svg` (et `app-icon-macos.svg`, la même avec la marge de la grille macOS).

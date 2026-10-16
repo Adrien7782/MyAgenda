@@ -3,9 +3,34 @@ export function isTauri(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
 
+export function isAndroid(): boolean {
+  return typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent);
+}
+
+/** iPhone / iPad (un iPad récent se présente comme un Mac, mais tactile). */
+export function isIOS(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+/** Système de téléphone / tablette (Android ou iOS). */
+export function isMobileOS(): boolean {
+  return isAndroid() || isIOS();
+}
+
+/** Application installée sur un téléphone (pas de fenêtres multiples, pas de zone de notification…). */
+export function isMobileApp(): boolean {
+  return isTauri() && isMobileOS();
+}
+
+/** Application installée sur un ordinateur (Windows, macOS, Linux). */
+export function isDesktopTauri(): boolean {
+  return isTauri() && !isMobileOS();
+}
+
 /** macOS : boutons de fenêtre natifs à gauche, barre des menus, libellés adaptés. */
 export function isMac(): boolean {
-  if (typeof navigator === 'undefined') return false;
+  if (typeof navigator === 'undefined' || isIOS()) return false;
   const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
   const p = nav.userAgentData?.platform ?? navigator.platform ?? navigator.userAgent;
   return /mac/i.test(p);

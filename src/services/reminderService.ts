@@ -33,9 +33,10 @@ export function createReminderService(scheduler: ReminderScheduler, settings: Se
       return 0;
     }
     const done = new Set(await firedKeys());
-    const plan = [...planReminders(tasks, events, { autoAlerts: opts.autoAlerts }), ...extra]
+    const plan = [...planReminders(tasks, events, { autoAlerts: opts.autoAlerts, horizonMs: scheduler.horizonMs }), ...extra]
       .filter((r) => !done.has(r.key))
-      .sort((a, b) => a.atMs - b.atMs);
+      .sort((a, b) => a.atMs - b.atMs)
+      .slice(0, scheduler.maxItems ?? Infinity);
     await scheduler.schedule(plan);
     return plan.length;
   }

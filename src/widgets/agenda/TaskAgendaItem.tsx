@@ -1,3 +1,4 @@
+import { OPEN_HINT } from '../../shared/device';
 import type { Task } from '../../domain/task/task';
 import { agendaTaskColor, PRIORITY_LABEL } from '../../shared/presentation/taskPresentation';
 
@@ -32,7 +33,7 @@ export function taskAgendaStyle(task: Task): React.CSSProperties {
 
 export function taskTooltip(task: Task): string {
   const prio = task.priority ? ` · priorité ${PRIORITY_LABEL[task.priority].toLowerCase()}` : '';
-  return `Tâche : ${task.title}${prio} — double-clic pour modifier`;
+  return `Tâche : ${task.title}${prio} — ${OPEN_HINT.toLowerCase()}`;
 }
 
 /** Étiquette de titre de tâche (texte clair teinté de la couleur de priorité). */

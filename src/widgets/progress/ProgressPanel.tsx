@@ -21,10 +21,15 @@ const PERIOD_OPTIONS = (['day', 'week', 'month', 'all'] as ProgressPeriod[]).map
  * Panneau "Progression" à droite de la page Tâches.
  * Largeur réglable à la souris (persistée), contenu qui se réorganise selon la largeur.
  */
-export function ProgressPanel({ tasks, maxWidth }: { tasks: Task[]; maxWidth: number }) {
+export function ProgressPanel({ tasks, maxWidth, embedded = false }: {
+  tasks: Task[];
+  maxWidth: number;
+  /** Téléphone : contenu seul (dans une fenêtre plein écran), sans poignée ni en-tête. */
+  embedded?: boolean;
+}) {
   const { progressPanelWidth, setProgressPanelWidth, progressPeriod, setProgressPeriod, setProgressPanelCollapsed } = useSettingsStore();
   const now = useNow();
-  const width = Math.max(PROGRESS_PANEL.min, Math.min(progressPanelWidth, maxWidth));
+  const width = embedded ? maxWidth : Math.max(PROGRESS_PANEL.min, Math.min(progressPanelWidth, maxWidth));
   const wide = width >= 420;
 
   const scoped = useMemo(() => tasksInPeriod(tasks, progressPeriod, now), [tasks, progressPeriod, now]);
@@ -32,30 +37,8 @@ export function ProgressPanel({ tasks, maxWidth }: { tasks: Task[]; maxWidth: nu
   const priorityTotal = stats.activePriorities.high + stats.activePriorities.medium + stats.activePriorities.low;
   const donutSize = Math.round(Math.min(wide ? 170 : 150, width * 0.5));
 
-  return (
-    <aside style={{
-      width, minWidth: width, position: 'relative', flexShrink: 0,
-      borderLeft: '1px solid var(--border)', background: 'var(--surface)',
-      display: 'flex', flexDirection: 'column', overflow: 'hidden',
-    }}>
-      <ResizeHandle
-        width={width}
-        onResize={(w) => setProgressPanelWidth(Math.min(w, maxWidth), false)}
-        onResizeEnd={(w) => setProgressPanelWidth(Math.min(w, maxWidth), true)}
-        onDoubleClick={() => setProgressPanelWidth(PROGRESS_PANEL.default)}
-      />
-
-      <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>Progression</h2>
-          <IconButton label="Masquer le panneau" variant="plain" size={26} onClick={() => setProgressPanelCollapsed(true)}>
-            <PanelRightIcon size={15} />
-          </IconButton>
-        </div>
-        <SegmentedControl size="sm" value={progressPeriod} onChange={setProgressPeriod} options={PERIOD_OPTIONS} />
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: '18px 18px 24px', display: 'flex', flexDirection: 'column', gap: 22 }}>
+  const content = (
+      <div style={{ flex: 1, overflowY: embedded ? 'visible' : 'auto', padding: embedded ? '4px 0 8px' : '18px 18px 24px', display: 'flex', flexDirection: 'column', gap: 22 }}>
         <div style={{ display: 'flex', flexDirection: wide ? 'row' : 'column', alignItems: 'center', gap: wide ? 20 : 16 }}>
           <DonutChart byStatus={stats.byStatus} total={stats.total} donePercent={stats.donePercent} size={donutSize} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9, width: '100%', flex: 1 }}>
@@ -94,6 +77,41 @@ export function ProgressPanel({ tasks, maxWidth }: { tasks: Task[]; maxWidth: nu
           </section>
         </div>
       </div>
+  );
+
+  if (embedded) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <SegmentedControl size="sm" value={progressPeriod} onChange={setProgressPeriod} options={PERIOD_OPTIONS} />
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <aside style={{
+      width, minWidth: width, position: 'relative', flexShrink: 0,
+      borderLeft: '1px solid var(--border)', background: 'var(--surface)',
+      display: 'flex', flexDirection: 'column', overflow: 'hidden',
+    }}>
+      <ResizeHandle
+        width={width}
+        onResize={(w) => setProgressPanelWidth(Math.min(w, maxWidth), false)}
+        onResizeEnd={(w) => setProgressPanelWidth(Math.min(w, maxWidth), true)}
+        onDoubleClick={() => setProgressPanelWidth(PROGRESS_PANEL.default)}
+      />
+
+      <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>Progression</h2>
+          <IconButton label="Masquer le panneau" variant="plain" size={26} onClick={() => setProgressPanelCollapsed(true)}>
+            <PanelRightIcon size={15} />
+          </IconButton>
+        </div>
+        <SegmentedControl size="sm" value={progressPeriod} onChange={setProgressPeriod} options={PERIOD_OPTIONS} />
+      </div>
+
+      {content}
     </aside>
   );
 }

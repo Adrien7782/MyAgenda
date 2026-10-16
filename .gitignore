@@ -22,3 +22,7 @@ src-tauri/gen/schemas
 *.key
 *.key.pub
 mot-de-passe-cle.txt
+
+# Projets Android / iOS générés à chaque construction (tauri android init / tauri ios init)
+src-tauri/gen/android
+src-tauri/gen/apple

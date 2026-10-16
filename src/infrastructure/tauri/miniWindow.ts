@@ -1,4 +1,4 @@
-import { hasNativeMacControls, isTauri } from '../platform';
+import { hasNativeMacControls, isDesktopTauri } from '../platform';
 import { MINI_LABEL } from './windowRole';
 
 export interface WindowBounds { x: number; y: number; width: number; height: number }
@@ -13,12 +13,12 @@ async function find() {
 /** Pilotage de la fenêtre "My Agenda Mini" depuis la fenêtre principale. */
 export const miniWindow = {
   async isOpen(): Promise<boolean> {
-    if (!isTauri()) return false;
+    if (!isDesktopTauri()) return false;
     return !!(await find());
   },
 
   async open(opts: { bounds: WindowBounds | null; alwaysOnTop: boolean }): Promise<void> {
-    if (!isTauri()) return;
+    if (!isDesktopTauri()) return;
     const existing = await find();
     if (existing) {
       await existing.show();
@@ -52,7 +52,7 @@ export const miniWindow = {
   },
 
   async close(): Promise<void> {
-    if (!isTauri()) return;
+    if (!isDesktopTauri()) return;
     await (await find())?.close();
   },
 };
@@ -60,27 +60,27 @@ export const miniWindow = {
 /** Côté fenêtre mini : épingler, fermer, mémoriser position et taille. */
 export const currentMiniWindow = {
   async setAlwaysOnTop(v: boolean) {
-    if (!isTauri()) return;
+    if (!isDesktopTauri()) return;
     const { getCurrentWindow } = await import('@tauri-apps/api/window');
     await getCurrentWindow().setAlwaysOnTop(v);
   },
 
   async close() {
-    if (!isTauri()) return;
+    if (!isDesktopTauri()) return;
     const { getCurrentWindow } = await import('@tauri-apps/api/window');
     await getCurrentWindow().close();
   },
 
   /** Fermeture par le bouton natif (pastille rouge sur macOS). */
   async onCloseRequested(cb: () => void | Promise<void>): Promise<() => void> {
-    if (!isTauri()) return () => undefined;
+    if (!isDesktopTauri()) return () => undefined;
     const { getCurrentWindow } = await import('@tauri-apps/api/window');
     return getCurrentWindow().onCloseRequested(async () => { await cb(); });
   },
 
   /** Appelle `cb` avec les dimensions logiques après chaque déplacement / redimensionnement. */
   async onBoundsChanged(cb: (b: WindowBounds) => void): Promise<() => void> {
-    if (!isTauri()) return () => undefined;
+    if (!isDesktopTauri()) return () => undefined;
     const { getCurrentWindow } = await import('@tauri-apps/api/window');
     const w = getCurrentWindow();
     const read = async () => {

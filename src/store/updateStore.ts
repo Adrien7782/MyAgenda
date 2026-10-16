@@ -54,6 +54,16 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
 
   async install() {
     if (get().status === 'installing') return;
+    if (services.updates.mode === 'download') {
+      // Android : le nouvel APK s'ouvre dans le navigateur, l'utilisateur l'installe ensuite.
+      try {
+        await useSyncStore.getState().syncNow().catch(() => undefined);
+        await services.updates.install();
+      } catch (e) {
+        set({ error: describeUpdateError(e, 'install') });
+      }
+      return;
+    }
     set({ status: 'installing', progress: { downloaded: 0 }, error: null });
     try {
       // Dernière synchronisation avant que l'installeur ne ferme l'application.

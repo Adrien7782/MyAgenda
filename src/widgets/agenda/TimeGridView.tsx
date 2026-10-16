@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { OPEN_HINT, openGesture } from '../../shared/device';
 import type { CalendarEvent } from '../../domain/event/event';
 import type { Task } from '../../domain/task/task';
 import { eventEnd, isAllDay, layoutOverlapping, type TimedItem } from '../../domain/event/eventRules';
@@ -152,8 +153,8 @@ export function TimeGridView({ days, todayKey, selectedDay, tasks, events, filte
                 if (b.kind === 'event') {
                   const color = colorOf(b.event);
                   return (
-                    <div key={b.id} title={`${b.event.title} — double-clic pour modifier`}
-                      onDoubleClick={(e) => { e.stopPropagation(); onEditEvent(b.event); }}
+                    <div key={b.id} title={`${b.event.title} — ${OPEN_HINT.toLowerCase()}`}
+                      {...openGesture(() => onEditEvent(b.event), true)}
                       style={{
                         ...pos,
                         background: `linear-gradient(180deg, color-mix(in srgb, ${color} 30%, var(--bg)), color-mix(in srgb, ${color} 20%, var(--bg)))`,
@@ -172,7 +173,7 @@ export function TimeGridView({ days, todayKey, selectedDay, tasks, events, filte
                 }
                 return (
                   <div key={b.id} title={taskTooltip(b.task)}
-                    onDoubleClick={(e) => { e.stopPropagation(); onEditTask(b.task); }}
+                    {...openGesture(() => onEditTask(b.task), true)}
                     style={{ ...pos, height: Math.min(height, 24), padding: '3px 6px', ...taskAgendaStyle(b.task) }}>
                     <TaskAgendaLabel task={b.task} fontSize={10.5} />
                   </div>

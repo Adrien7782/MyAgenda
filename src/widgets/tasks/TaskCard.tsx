@@ -1,4 +1,5 @@
 import type { Task } from '../../domain/task/task';
+import { openGesture } from '../../shared/device';
 import { isOverdue, parseTags } from '../../domain/task/taskRules';
 import { AlertTriangleIcon, EditIcon, RepeatIcon, TrashIcon } from '../../shared/icons/Icons';
 import { Badge, IconButton, StatusCheck } from '../../shared/ui';
@@ -68,7 +69,7 @@ export function TaskCard({ task, dragHandleProps, isDragging, compact, onToggleD
   return (
     <div
       className="hoverable"
-      onDoubleClick={() => onEdit(task)}
+      {...openGesture(() => onEdit(task))}
       style={{
         position: 'relative', borderRadius: 10, background: 'var(--surface)', padding: '11px 14px',
         border: `1px solid ${overdue ? 'color-mix(in srgb, var(--danger) 40%, transparent)' : task.status === 'in_progress' ? 'color-mix(in srgb, var(--accent) 27%, transparent)' : 'var(--border)'}`,
