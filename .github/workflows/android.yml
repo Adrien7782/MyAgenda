@@ -1,12 +1,16 @@
 # Construit l'application Android (APK signé).
 #
-# Deux usages :
-#   • Onglet Actions → « Android (APK) » → Run workflow : APK de TEST, à télécharger dans
-#     la page de l'exécution (rubrique « Artifacts »). Rien n'est publié.
+# Trois usages :
+#   • Envoi (git push) sur une branche autre que main : APK de TEST construit automatiquement,
+#     à télécharger dans la page de l'exécution (rubrique « Artifacts »). Rien n'est publié.
+#   • Onglet Actions → « Android (APK) » → Run workflow : pareil, à la demande
+#     (le bouton n'apparaît qu'une fois ce fichier présent sur main).
 #   • Appelé par « Publier une version » : l'APK est ajouté à la Release.
 name: Android (APK)
 
 on:
+  push:
+    branches-ignore: [main]
   workflow_dispatch:
   workflow_call:
     inputs:
@@ -16,6 +20,11 @@ on:
 
 permissions:
   contents: write
+
+# Plusieurs envois rapprochés sur la même branche : seul le dernier est construit.
+concurrency:
+  group: android-${{ github.ref }}-${{ inputs.release_id || 'test' }}
+  cancel-in-progress: true
 
 jobs:
   apk:

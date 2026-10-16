@@ -89,7 +89,8 @@ Un simple `git push` (sans tag) ne publie rien : il lance seulement les vérific
 
 ### Tester Android avant de publier
 
-Onglet **Actions → Android (APK) → Run workflow** (branche au choix). Après ~15 min, ouvre l'exécution :
+Envoie ta branche (`git push`, sur une branche autre que `main`) : l'APK de test se construit tout seul
+(onglet **Actions → Android (APK)**, ou **Run workflow** une fois le fichier présent sur `main`). Après ~15 min, ouvre l'exécution :
 en bas, rubrique **Artifacts**, télécharge `my-agenda-android-test` (un .zip qui contient l'APK),
 envoie l'APK sur ton téléphone (câble USB, Google Drive, mail…) et installe-le comme ci-dessous.
 Rien n'est publié : tes utilisateurs ne voient rien.
