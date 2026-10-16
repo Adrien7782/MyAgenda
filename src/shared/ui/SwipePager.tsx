@@ -18,14 +18,18 @@ export function SwipePager({ pageKey, pageKeys, renderPage, onMove }: {
   const ref = useRef<HTMLDivElement>(null);
   const settleTimer = useRef<ReturnType<typeof setTimeout>>();
   const touching = useRef(false);
-  const moving = useRef(false);
+  /**
+   * Un geste = au plus UNE période. Armé par le doigt (ou la molette/le pavé tactile),
+   * consommé au premier changement : l'inertie du lancer ne peut pas en ajouter une seconde.
+   */
+  const armed = useRef(false);
+  const supportsScrollEnd = typeof window !== 'undefined' && 'onscrollend' in window;
 
   // Après chaque changement de période (ou de taille d'écran) : page du milieu, instantanément.
   const recenter = useCallback(() => {
     const el = ref.current;
     if (!el) return;
     el.scrollTo({ left: el.clientWidth, behavior: 'instant' as ScrollBehavior });
-    moving.current = false;
   }, []);
   useLayoutEffect(recenter, [pageKey, recenter]);
   useEffect(() => {
@@ -38,21 +42,28 @@ export function SwipePager({ pageKey, pageKeys, renderPage, onMove }: {
 
   const settle = useCallback(() => {
     const el = ref.current;
-    if (!el || touching.current || moving.current || el.clientWidth === 0) return;
-    const index = Math.round(el.scrollLeft / el.clientWidth);
+    const width = el?.clientWidth ?? 0;
+    if (!el || touching.current || width === 0) return;
+    const index = Math.round(el.scrollLeft / width);
+    // Encore en train de glisser vers une page : on attend la fin de l'animation.
+    if (Math.abs(el.scrollLeft - index * width) > 2) return;
     if (index === 1) return;
-    moving.current = true;
+    if (!armed.current) {
+      // Défilement résiduel après un changement : on revient simplement sur la page affichée.
+      recenter();
+      return;
+    }
+    armed.current = false;
     onMove(index < 1 ? -1 : 1);
-  }, [onMove]);
+  }, [onMove, recenter]);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const supportsScrollEnd = 'onscrollend' in window;
     const onScroll = () => {
       if (supportsScrollEnd) return;
       clearTimeout(settleTimer.current);
-      settleTimer.current = setTimeout(settle, 140);
+      settleTimer.current = setTimeout(settle, 160);
     };
     const onScrollEnd = () => settle();
     el.addEventListener('scroll', onScroll, { passive: true });
@@ -62,7 +73,7 @@ export function SwipePager({ pageKey, pageKeys, renderPage, onMove }: {
       el.removeEventListener('scrollend', onScrollEnd);
       clearTimeout(settleTimer.current);
     };
-  }, [settle]);
+  }, [settle, supportsScrollEnd]);
 
   // Les grilles horaires voisines prennent la même position verticale que la page affichée,
   // pour que la journée « continue » pendant le glissement.
@@ -83,9 +94,16 @@ export function SwipePager({ pageKey, pageKeys, renderPage, onMove }: {
     <div
       ref={ref}
       className="h-scroll"
-      onTouchStart={() => { touching.current = true; syncVertical(); }}
-      onTouchEnd={() => { touching.current = false; clearTimeout(settleTimer.current); settleTimer.current = setTimeout(settle, 140); }}
+      data-swipe-pager
+      onTouchStart={() => { touching.current = true; armed.current = true; clearTimeout(settleTimer.current); syncVertical(); }}
+      onTouchEnd={() => {
+        touching.current = false;
+        // Doigt relevé pile sur une page (aucun défilement ensuite) : rien d'autre ne préviendrait.
+        clearTimeout(settleTimer.current);
+        settleTimer.current = setTimeout(settle, 160);
+      }}
       onTouchCancel={() => { touching.current = false; }}
+      onWheel={(e) => { if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) armed.current = true; }}
       style={{
         flex: 1, minHeight: 0, display: 'flex', overflowX: 'auto', overflowY: 'hidden',
         scrollSnapType: 'x mandatory', overscrollBehaviorX: 'contain', scrollBehavior: 'auto',
