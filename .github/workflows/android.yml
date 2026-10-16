@@ -50,22 +50,29 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
 
-      - uses: android-actions/setup-android@v3
-
-      - name: NDK (compilation du code Rust pour Android)
+      # Le SDK Android et le NDK sont déjà installés sur les machines GitHub (ubuntu-latest).
+      - name: SDK et NDK Android
         shell: bash
         run: |
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
           if [ -n "$ANDROID_NDK_LATEST_HOME" ] && [ -d "$ANDROID_NDK_LATEST_HOME" ]; then
-            echo "NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
+            NDK="$ANDROID_NDK_LATEST_HOME"
           else
-            sdkmanager --install "ndk;27.2.12479018"
-            echo "NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+            NDK=$(ls -d "$SDK"/ndk/* 2>/dev/null | sort -V | tail -1)
           fi
+          if [ -z "$NDK" ]; then
+            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --install "ndk;27.2.12479018" > /dev/null
+            NDK="$SDK/ndk/27.2.12479018"
+          fi
+          echo "SDK : $SDK"
+          echo "NDK : $NDK"
+          echo "NDK_HOME=$NDK" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
