@@ -7,6 +7,7 @@ La section de la version publiée s'affiche dans l'application, dans Réglages �
 
 - **My Agenda sur iPhone, iPad et dans tous les navigateurs** : une web app, à ajouter à l'écran d'accueil. Mêmes données grâce à ton compte, fonctionne hors ligne, toujours à jour à l'ouverture.
 - Sur iPad et tablette Android, l'interface ordinateur remplace l'interface téléphone.
+- Web app : import d'un emploi du temps par lien iCal grâce au relais Supabase « ics-proxy » (voir SETUP_SUPABASE.md).
 
 ## 1.0.1
 

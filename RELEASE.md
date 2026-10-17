@@ -173,8 +173,8 @@ Télécharger la mise à jour** ouvre le nouvel APK dans le navigateur, il suffi
 
 Limites de la web app (imposées par iOS et les navigateurs) :
 - les rappels s'affichent **seulement quand My Agenda est ouverte** (au premier plan sur iPhone) ;
-- le lien d'un emploi du temps (.ics) est souvent refusé par le site de l'université : importer le fichier .ics,
-  ou ajouter le lien depuis l'application Windows / Mac / Android (les cours arrivent ensuite par la synchronisation) ;
+- le lien d'un emploi du temps (.ics) passe par le relais Supabase `ics-proxy` : à installer une fois
+  (SETUP_SUPABASE.md, section 6), sinon le site de l'université refuse la lecture du lien ;
 - pas de mini ni de lancement au démarrage.
 
 Mises à jour : rien à faire. À chaque ouverture, la web app vérifie la version en ligne et se recharge

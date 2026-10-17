@@ -62,6 +62,20 @@ Configurer un SMTP gratuit débloque aussi la modification des modèles d'email 
 > La sécurité vient des règles RLS du script SQL. Ne mets **jamais** la clé *service_role* dans l'application.
 > Le fichier `.env` est exclu de Git : tes valeurs ne seront pas publiées sur GitHub.
 
+## 6. Relais des emplois du temps (pour la web app)
+
+Dans un navigateur, les sites d'emploi du temps (ADE, Hyperplanning, Celcat…) refusent qu'une autre page
+lise leur lien iCal. L'application Windows / Mac / Android n'a pas ce problème ; la web app passe par un
+petit relais installé dans **ton** projet Supabase (gratuit, rien n'est enregistré). À faire une seule fois :
+
+1. Supabase → **Edge Functions** → **Deploy a new function** → **Via Editor**.
+2. Nom de la fonction : `ics-proxy` (exactement).
+3. Remplace tout le code proposé par le contenu du fichier `supabase/functions/ics-proxy/index.ts` → **Deploy function**.
+4. Laisse **Verify JWT** activé (réglage par défaut) : seuls les utilisateurs connectés à My Agenda peuvent s'en servir.
+
+Ensuite, dans la web app : Réglages → Emplois du temps importés → **Par lien** fonctionne comme dans l'application.
+(Variante en ligne de commande : `npx supabase functions deploy ics-proxy --project-ref TON-ID-DE-PROJET`.)
+
 ## Vérifier que tout fonctionne
 - Crée un compte dans l'application → saisis le code reçu par email.
 - Ajoute une tâche → Supabase → **Table Editor → tasks** : la ligne apparaît (avec ton `user_id`) après quelques secondes.
