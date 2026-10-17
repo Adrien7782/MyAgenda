@@ -1,0 +1,13 @@
+# Compilation de Whisper (commande vocale) :
+# - liaisons C déjà fournies : pas besoin d'installer LLVM/libclang ;
+# - pas d'optimisation « pour ce processeur-ci » (sinon l'app construite sur GitHub pourrait planter
+#   sur un PC plus ancien) : niveau AVX2, présent sur les PC et Mac Intel depuis 2013 environ ;
+# - macOS 10.15 minimum, comme le reste de l'application.
+[env]
+WHISPER_DONT_GENERATE_BINDINGS = "1"
+GGML_NATIVE = "OFF"
+GGML_AVX = "ON"
+GGML_AVX2 = "ON"
+GGML_FMA = "ON"
+GGML_F16C = "ON"
+MACOSX_DEPLOYMENT_TARGET = "10.15"

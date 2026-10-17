@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Message affiché par macOS quand My Agenda demande l'accès au micro (commande vocale). -->
+  <key>NSMicrophoneUsageDescription</key>
+  <string>My Agenda utilise le micro uniquement quand tu actives la commande vocale. La reconnaissance se fait sur ton Mac : rien n'est enregistré ni envoyé.</string>
+</dict>
+</plist>

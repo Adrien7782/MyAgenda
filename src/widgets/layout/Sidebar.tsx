@@ -6,6 +6,7 @@ import { isActive } from '../../domain/focus/focus';
 import { useFocusStore } from '../../store/focusStore';
 import { useMiniWindowController } from '../mini/useMiniWindowController';
 import { isWebApp } from '../../app/container';
+import { VoiceButton } from '../voice/VoicePanel';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useDeletedTasks } from '../../store/taskStore';
 import { useDeletedNotes } from '../../store/noteStore';
@@ -92,6 +93,8 @@ export function Sidebar() {
       ))}
 
       <div style={{ flex: 1 }} />
+
+      <VoiceButton style={navStyle} />
 
       {/* Le mini est une fenêtre séparée : seulement dans l'application installée. */}
       {!isWebApp && (

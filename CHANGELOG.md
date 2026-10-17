@@ -5,6 +5,7 @@ La section de la version publiée s'affiche dans l'application, dans Réglages �
 
 ## 1.1.0
 
+- **Commande vocale** (Windows et Mac) : bouton micro ou Ctrl+Maj+Espace (⌘+Maj+Espace sur Mac), même application cachée. Crée des notes, des tâches et des évènements à la voix avec des phrases guidées en français (« Crée-moi une note. Titre : … Contenu : … Stop »), titre et contenu dictables en français, anglais ou espagnol. « Annule », « éteins-toi ». Reconnaissance 100 % locale (Whisper), modèle téléchargé une fois.
 - **Notes** : une nouvelle page pour garder tes idées et tout ce qu'il faut retenir. Titre, texte mis en forme (titres, gras, italique, souligné, barré, surligné, listes, cases à cocher, citations), enregistrement automatique, recherche, notes épinglées et colorées, téléchargement en .txt (ou partage sur téléphone), corbeille. Synchronisées sur tous tes appareils.
 - **Évènements répétés** : chaque jour, chaque semaine, chaque mois ou chaque année, avec une date de fin si besoin. Un rappel sonne à chaque occurrence.
 - **12 nouvelles couleurs** pour les évènements (plus vives, bien lisibles sur les thèmes clairs).

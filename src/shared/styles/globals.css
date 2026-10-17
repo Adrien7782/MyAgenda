@@ -441,3 +441,12 @@ html, body { -webkit-tap-highlight-color: transparent; }
 .note-card { transition: border-color .15s, transform .15s; }
 .note-card:hover { border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
 .note-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── Commande vocale ─────────────────────────────────────────────────────── */
+@keyframes voice-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  70% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--accent) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
+}
+.voice-live { animation: voice-pulse 1.6s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { .voice-live { animation: none; } }

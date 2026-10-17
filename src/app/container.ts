@@ -10,6 +10,7 @@ import { SqliteTaskRepository } from '../infrastructure/sqlite/sqliteTaskReposit
 import { SqliteEventRepository } from '../infrastructure/sqlite/sqliteEventRepository';
 import { SqliteNoteRepository } from '../infrastructure/sqlite/sqliteNoteRepository';
 import { createNoteService } from '../services/noteService';
+import { createVoiceEngine } from '../infrastructure/tauri/voiceEngine';
 import { SqliteCalendarSourceRepository, SqliteSettingsRepository } from '../infrastructure/sqlite/sqliteSettingsRepositories';
 import { createMemoryRepositories } from '../infrastructure/memory/memoryRepositories';
 import { SupabaseRemoteStore } from '../infrastructure/supabase/supabaseRemoteStore';
@@ -75,6 +76,8 @@ export const services = {
   /** Mises à jour de l'application installée (GitHub Releases). */
   updates: createUpdateService(web ? new WebUpdater() : createUpdater(http), settings, notifier),
   reminders: createReminderService(createReminderScheduler(), repositories.settings),
+  /** Commande vocale (application ordinateur). */
+  voice: createVoiceEngine(),
   /** Synchronisation instantanée entre la grande fenêtre et le mini. */
   changeBus: new TauriChangeBus(),
 };

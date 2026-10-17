@@ -234,3 +234,35 @@ export interface Repositories {
   sources: CalendarSourceRepository;
   settings: SettingsRepository;
 }
+
+// ── Commande vocale ─────────────────────────────────────────────────────────
+
+export interface VoiceModel {
+  id: string;
+  label: string;
+  sizeMb: number;
+  downloaded: boolean;
+}
+
+export type VoiceEngineEvent =
+  | { type: 'state'; phase: 'loading' | 'listening' | 'hearing' | 'processing' | 'off'; reason?: string | null }
+  | { type: 'level'; level: number }
+  | { type: 'utterance'; utterance: import('../domain/voice/types').Utterance }
+  | { type: 'pause' }
+  | { type: 'error'; message: string }
+  | { type: 'download'; model: string; downloaded: number; total: number }
+  | { type: 'toggle' };
+
+/** Moteur de reconnaissance vocale (Whisper, côté Rust, dans l'application ordinateur). */
+export interface VoiceEngine {
+  readonly supported: boolean;
+  models(): Promise<VoiceModel[]>;
+  downloadModel(id: string): Promise<void>;
+  start(modelId: string): Promise<void>;
+  stop(): Promise<void>;
+  isActive(): Promise<boolean>;
+  /** 2e passe : un morceau d'une phrase, retranscrit dans sa langue (fr, en ou es). */
+  transcribeRange(utteranceId: number, start: number, end: number): Promise<{ text: string; lang: string }>;
+  shortcutAvailable(): Promise<boolean>;
+  subscribe(cb: (e: VoiceEngineEvent) => void): Promise<() => void>;
+}

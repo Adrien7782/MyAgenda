@@ -14,6 +14,10 @@ use tauri::{
 #[cfg(desktop)]
 use tauri_plugin_notification::NotificationExt;
 
+/// Commande vocale (micro + reconnaissance vocale locale) : ordinateur uniquement.
+#[cfg(desktop)]
+mod voice;
+
 // ── Rappels ──────────────────────────────────────────────────────────────────
 // Ordinateur : l'interface calcule les prochains rappels et les confie au Rust ; un fil
 // d'exécution natif les déclenche à l'heure, même si la fenêtre est cachée.
@@ -114,6 +118,36 @@ fn hide_app(app: &AppHandle) {
     }
 }
 
+#[cfg(desktop)]
+fn handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
+    tauri::generate_handler![
+        set_close_to_tray,
+        schedule_reminders,
+        voice::voice_models,
+        voice::voice_download_model,
+        voice::voice_start,
+        voice::voice_stop,
+        voice::voice_is_active,
+        voice::voice_transcribe_range,
+        voice_shortcut_status
+    ]
+}
+
+#[cfg(not(desktop))]
+fn handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
+    tauri::generate_handler![set_close_to_tray, schedule_reminders]
+}
+
+/// Le raccourci de la commande vocale a-t-il pu être réservé ? (sinon : déjà pris par une autre application)
+#[cfg(desktop)]
+#[tauri::command]
+fn voice_shortcut_status(state: tauri::State<ShortcutOk>) -> bool {
+    state.0.load(Ordering::Relaxed)
+}
+
+#[cfg(desktop)]
+struct ShortcutOk(AtomicBool);
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default();
@@ -129,7 +163,18 @@ pub fn run() {
             ))
             // Mises à jour : vérification, téléchargement signé, installation puis redémarrage.
             .plugin(tauri_plugin_updater::Builder::new().build())
-            .plugin(tauri_plugin_process::init());
+            .plugin(tauri_plugin_process::init())
+            // Raccourci global de la commande vocale (fonctionne application cachée).
+            .plugin(
+                tauri_plugin_global_shortcut::Builder::new()
+                    .with_handler(|app, _shortcut, event| {
+                        if event.state() == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                            voice::on_shortcut(app);
+                        }
+                    })
+                    .build(),
+            )
+            .manage(voice::VoiceState::default());
     }
 
     builder = builder
@@ -141,7 +186,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(CloseToTray(AtomicBool::new(true)))
         .manage(Reminders(Mutex::new(ReminderState::default())))
-        .invoke_handler(tauri::generate_handler![set_close_to_tray, schedule_reminders]);
+        .invoke_handler(handlers());
 
     #[cfg(desktop)]
     {
@@ -165,8 +210,16 @@ pub fn run() {
 #[cfg(desktop)]
 fn desktop_setup(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
     builder
+        .manage(ShortcutOk(AtomicBool::new(false)))
         .setup(|app| {
             start_reminder_loop(app.handle().clone());
+
+            // ── Raccourci de la commande vocale ──
+            {
+                use tauri_plugin_global_shortcut::GlobalShortcutExt;
+                let ok = app.global_shortcut().register(voice::SHORTCUT).is_ok();
+                app.state::<ShortcutOk>().0.store(ok, Ordering::Relaxed);
+            }
 
             // ── Icône dans la zone de notification ──
             let open = MenuItem::with_id(app, "open", "Ouvrir My Agenda", true, None::<&str>)?;

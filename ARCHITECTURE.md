@@ -11,7 +11,7 @@ Application desktop Tauri 2 + React + TypeScript, multi-utilisateur.
 ```powershell
 copy .env.example .env   # puis renseigner l'URL et la clé Supabase (voir SETUP_SUPABASE.md)
 npm install
-npm run tauri dev     # application complète (vraie base SQLite)
+npm run tauri dev     # application complète (vraie base SQLite) — demande CMake (commande vocale, voir plus bas)
 npm run dev           # dans le navigateur : web app (avec .env) ou données de démo (sans .env)
 npm run build:web     # web app dans dist/ (publiée sur GitHub Pages par .github/workflows/web.yml)
 npm test              # tests unitaires (vitest)
@@ -145,6 +145,21 @@ dans `src-tauri/icons/`. Le logo affiché dans l'application est `widgets/layout
 - Ne pas changer `identifier` dans `tauri.conf.json` ni le nom `flux.db` : la base serait recréée vide.
 - Les évènements importés (`source_id` renseigné) ne sont pas envoyés à Supabase : ils sont re-téléchargés depuis leur lien.
 - Couleurs d'évènements : règle par **titre** (réglage `event_title_colors`), donc conservée lors des ré-imports.
+## Commande vocale (ordinateur)
+
+- **Rust** (`src-tauri/src/voice.rs`) : micro (cpal) → détection de la voix (énergie) → phrases → Whisper
+  (whisper-rs) 1re passe en français avec la position de chaque mot (`voice://utterance`). Commande
+  `voice_transcribe_range` = 2e passe d'un morceau, langue détectée parmi fr / en / es. Modèles téléchargés une
+  fois depuis Hugging Face dans le dossier de l'app (`models/`). Raccourci global `CommandOrControl+Shift+Space`.
+- **Domaine** (`domain/voice/`) : analyseur de phrases guidées sans IA (mots-clés, dates en français, dictée),
+  testé dans `domain/voice/__tests__`.
+- **Service** (`services/voiceController.ts`) : relie moteur, analyseur, 2e passe et création ; `store/voiceStore.ts`
+  crée réellement notes / tâches / évènements ; `widgets/voice/VoicePanel.tsx` = bouton micro + panneau.
+- **Compilation** : Whisper est du C++ compilé par CMake. Il faut **CMake** sur la machine
+  (Windows : `winget install Kitware.CMake` ; Mac : `brew install cmake`). Les options sont dans
+  `src-tauri/.cargo/config.toml` (pas d'optimisation propre au processeur de la machine qui compile).
+- Essai sans micro : `npm run dev`, puis dans la console du navigateur `localStorage.setItem('voice-demo', '1')` et recharger.
+
 - Versions Tauri : `@tauri-apps/api`, la CLI et les plugins JS doivent rester sur le même x.y que les crates Rust
   (`Cargo.toml` les fige avec `~`). Sinon `tauri build` s'arrête et aucune version ne peut être publiée.
 - Pièces jointes : seules les métadonnées (nom, taille) sont enregistrées pour l'instant.

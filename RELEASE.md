@@ -200,6 +200,11 @@ comme l'impose iOS). Il manque la partie Apple, qui demande un **compte Apple De
 
 ## Dépannage
 
+- **`npm run tauri dev` échoue avec « is `cmake` not installed? »** → la commande vocale compile Whisper avec CMake :
+  Windows `winget install Kitware.CMake` (puis rouvrir le terminal), Mac `brew install cmake`.
+- **Tester avant de publier** : chaque envoi sur une branche (autre que main) construit une app de test Windows + Mac,
+  à télécharger dans Actions → « Ordinateur (test) » → Artifacts.
+
 - **Web app : le workflow échoue à « deploy » avec « not allowed to deploy to github-pages »** →
   la règle de tag `v*` manque (section *Web app : GitHub Pages*, étape 2). Relance ensuite le job.
 - **Web app : page 404** → Settings → Pages → Source doit être « GitHub Actions », puis relancer **Actions → Web app**.

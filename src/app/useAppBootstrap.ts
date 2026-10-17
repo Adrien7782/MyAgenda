@@ -8,6 +8,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import { useTaskStore } from '../store/taskStore';
 import { useEventStore } from '../store/eventStore';
 import { useNoteStore } from '../store/noteStore';
+import { useVoiceStore } from '../store/voiceStore';
 import { useSyncStore } from '../store/syncStore';
 import { useUiStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore';
@@ -71,6 +72,14 @@ export function useAppBootstrap(role: WindowRole): { ready: boolean; error: stri
       if (channel === 'auth') void useAuthStore.getState().restore();
       if (channel === 'focus') void useFocusStore.getState().hydrate();
     }).then((fn) => { off = fn; });
+    return () => off?.();
+  }, [isMain]);
+
+  // Commande vocale (application ordinateur, grande fenêtre) : écoute du moteur Rust.
+  useEffect(() => {
+    if (!isMain || !services.voice.supported) return;
+    let off: (() => void) | undefined;
+    void useVoiceStore.getState().init().then((fn) => { off = fn; });
     return () => off?.();
   }, [isMain]);
 

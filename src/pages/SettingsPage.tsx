@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { PageHeader } from '../shared/ui';
 import { usePhoneLayout } from '../shared/hooks/usePhoneLayout';
-import { isDemo, isWebApp } from '../app/container';
+import { isDemo, isWebApp, services } from '../app/container';
+import { VoiceSettings } from '../widgets/settings/VoiceSettings';
 import { SettingsSection } from '../widgets/settings/SettingsSection';
 import { ThemePicker } from '../widgets/settings/ThemePicker';
 import { NotificationSettings } from '../widgets/settings/NotificationSettings';
@@ -35,6 +36,7 @@ export function SettingsPage() {
         <SettingsSection title="Compte et synchronisation"><AccountSettings /></SettingsSection>
         <SettingsSection title="Thème de l'interface"><ThemePicker /></SettingsSection>
         <SettingsSection title="Notifications"><NotificationSettings /></SettingsSection>
+        {services.voice.supported && <SettingsSection title="Commande vocale" id="voice"><VoiceSettings /></SettingsSection>}
         <SettingsSection title="Mises à jour" id="updates"><UpdateSettings /></SettingsSection>
         {isWebApp
           ? <SettingsSection title="Application"><WebAppSettings /></SettingsSection>

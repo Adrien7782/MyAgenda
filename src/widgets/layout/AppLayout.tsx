@@ -9,6 +9,7 @@ import { MiniWidget } from './MiniWidget';
 import { TaskModal } from '../tasks/task-modal/TaskModal';
 import { EventModal } from '../agenda/EventModal';
 import { UpdateBanner } from '../updates/UpdateBanner';
+import { VoicePanel } from '../voice/VoicePanel';
 
 /** Squelette de l'application : barre de titre, navigation, page courante et modales globales. */
 export function AppLayout() {
@@ -42,6 +43,7 @@ export function AppLayout() {
         </main>
       </div>
       {isDemo && isMiniOpen && <MiniWidget />}
+      <VoicePanel />
       <TaskModal />
       <EventModal />
     </div>

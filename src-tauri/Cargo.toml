@@ -26,3 +26,8 @@ tauri-plugin-autostart = "~2.7"
 tauri-plugin-single-instance = "2"
 tauri-plugin-updater = "~2.14"
 tauri-plugin-process = "~2.4"
+# Commande vocale : raccourci global, micro, reconnaissance vocale locale (Whisper), téléchargement du modèle
+tauri-plugin-global-shortcut = "=2.4.0"
+cpal = "0.18.2"
+whisper-rs = "0.16.0"
+ureq = "3.4.2"

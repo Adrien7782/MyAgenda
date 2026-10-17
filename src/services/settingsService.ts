@@ -23,6 +23,8 @@ export const SettingKeys = {
   pullCursorTasks: 'sync_cursor_tasks',
   pullCursorEvents: 'sync_cursor_events',
   pullCursorNotes: 'sync_cursor_notes',
+  /** Modèle de reconnaissance vocale choisi (« base » ou « small »). */
+  voiceModel: 'voice_model',
   /** Notes : curseur d'envoi séparé, qui n'avance que si le serveur a bien la table des notes. */
   lastNotesSyncAt: 'last_notes_sync_at',
 } as const;
