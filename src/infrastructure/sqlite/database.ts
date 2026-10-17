@@ -1,19 +1,37 @@
-import type Database from '@tauri-apps/plugin-sql';
+import { isTauri } from '../platform';
 
 /**
- * Bases SQLite locales, dans %APPDATA%\com.flux.desktop\ :
- * - une base par compte utilisateur (`user-xxxxxxxx.db`) ;
- * - `flux.db` = base historique (avant les comptes), rattachée au 1er compte qui l'accepte.
+ * Bases SQLite locales :
+ * - application installée : fichiers dans %APPDATA%\com.flux.desktop\ (plugin SQL de Tauri) ;
+ * - web app : la même base, enregistrée dans le stockage du navigateur (voir webSqlite.ts).
+ * Une base par compte utilisateur (`user-xxxxxxxx.db`) ; `flux.db` = base historique (avant les comptes),
+ * rattachée au 1er compte qui l'accepte.
  * ⚠️ L'identifiant de l'app (tauri.conf.json) ne doit pas changer, sinon le dossier change.
  */
 export const LEGACY_DB_FILE = 'flux.db';
 
-let currentFile: string | null = null;
-let instance: Promise<Database> | null = null;
+/** Ce que les dépôts utilisent : le sous-ensemble commun au plugin Tauri et à la version web. */
+export interface SqlDatabase {
+  select<T>(query: string, bindValues?: unknown[]): Promise<T>;
+  execute(query: string, bindValues?: unknown[]): Promise<{ rowsAffected: number; lastInsertId?: number }>;
+  /** Web app seulement. */
+  flush?(): Promise<void>;
+  dispose?(): void;
+  hasUnsavedChanges?(): boolean;
+}
 
-async function open(file: string): Promise<Database> {
-  const { default: DatabaseClass } = await import('@tauri-apps/plugin-sql');
-  const db = await DatabaseClass.load(`sqlite:${file}`);
+let currentFile: string | null = null;
+let instance: Promise<SqlDatabase> | null = null;
+
+async function open(file: string): Promise<SqlDatabase> {
+  let db: SqlDatabase;
+  if (isTauri()) {
+    const { default: DatabaseClass } = await import('@tauri-apps/plugin-sql');
+    db = await DatabaseClass.load(`sqlite:${file}`);
+  } else {
+    const { WebSqliteDatabase } = await import('./webSqlite');
+    db = await WebSqliteDatabase.open(file);
+  }
   await migrate(db);
   return db;
 }
@@ -29,14 +47,35 @@ export function currentDatabaseFile(): string | null {
   return currentFile;
 }
 
-export function getDb(): Promise<Database> {
+export function getDb(): Promise<SqlDatabase> {
   if (!currentFile) return Promise.reject(new Error('Aucun compte connecté : base de données non sélectionnée.'));
   if (!instance) instance = open(currentFile);
   return instance;
 }
 
+/** Web app : enregistre la base ouverte dans le navigateur (avant de prévenir les autres onglets). */
+export async function flushDb(): Promise<void> {
+  const db = instance ? await instance.catch(() => null) : null;
+  await db?.flush?.();
+}
+
+/** Web app : un autre onglet a modifié la base → on la relit depuis le stockage du navigateur. */
+export async function reloadDb(file: string): Promise<void> {
+  if (file !== currentFile || !instance) return;
+  const old = await instance.catch(() => null);
+  if (old?.hasUnsavedChanges?.()) await old.flush?.();
+  old?.dispose?.();
+  instance = open(file);
+  await instance;
+}
+
 /** Compte les lignes des tables principales d'une base (sans la sélectionner). */
 export async function countRows(file: string): Promise<Record<string, number>> {
+  if (!isTauri() && file !== currentFile) {
+    // Web app : ne pas créer de base vide juste pour la compter.
+    const { storedDatabaseExists } = await import('./webSqlite');
+    if (!(await storedDatabaseExists(file))) return {};
+  }
   const db = file === currentFile && instance ? await instance : await open(file);
   const out: Record<string, number> = {};
   const queries: Record<string, string> = {
@@ -56,7 +95,7 @@ export async function countRows(file: string): Promise<Record<string, number>> {
   return out;
 }
 
-async function migrate(db: Database): Promise<void> {
+async function migrate(db: SqlDatabase): Promise<void> {
   await db.execute(`
     CREATE TABLE IF NOT EXISTS tasks (
       id          TEXT PRIMARY KEY,

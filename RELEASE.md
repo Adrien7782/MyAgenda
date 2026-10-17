@@ -1,7 +1,8 @@
 # Publier My Agenda sur GitHub et livrer les mises à jour
 
 Résumé : le code est sur GitHub. Quand tu envoies un **tag de version** (`v0.6.1`…),
-GitHub construit l'installeur **Windows** (.exe), **macOS** (.dmg) et l'application **Android** (.apk), les signe et les publie dans **Releases**.
+GitHub construit l'installeur **Windows** (.exe), **macOS** (.dmg) et l'application **Android** (.apk), les signe et les publie dans **Releases**,
+puis met en ligne la **web app** (iPhone, iPad, tout navigateur) sur GitHub Pages, avec le même numéro de version.
 Les applications installées le voient (au démarrage puis toutes les 6 h) et proposent
 la mise à jour : notification, bandeau, bouton dans **Réglages → Mises à jour**.
 
@@ -52,6 +53,17 @@ l'application refuse tout installeur qui n'a pas été signé avec ta clé priv�
 
 > ⚠️ Même règle que pour la clé de mise à jour : **ne perds jamais `my-agenda-android.jks`**.
 > Android n'installe une nouvelle version par-dessus l'ancienne que si elle est signée avec la même clé.
+
+### Web app : GitHub Pages (2 réglages)
+
+1. **Settings → Pages** → *Build and deployment* → **Source : GitHub Actions**.
+2. **Settings → Environments → github-pages** (il apparaît après l'étape 1) → *Deployment branches and tags* :
+   laisse `main`, puis **Add deployment branch or tag rule** → *Ref type* : **Tag** → nom : `v*` → **Add rule**.
+   Sans cette règle, GitHub refuse de publier la web app depuis un tag de version.
+3. Première mise en ligne sans attendre la prochaine version : **Actions → Web app → Run workflow** (branche `main`).
+
+Adresse de la web app : **https://TON-PSEUDO.github.io/NOM-DU-DEPOT/** (affichée à la fin du workflow).
+Elle utilise les mêmes secrets `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` : rien d'autre à configurer dans Supabase.
 
 ## 3. Publier une version
 
@@ -152,7 +164,23 @@ Sur Android, les mises à jour ne s'installent pas toutes seules : **Réglages �
 Télécharger la mise à jour** ouvre le nouvel APK dans le navigateur, il suffit de le toucher puis
 **Mettre à jour**. Les données sont conservées (même clé de signature).
 
-### iPhone (plus tard)
+### iPhone et iPad : la web app
+
+1. Sur l'iPhone, ouvre **https://TON-PSEUDO.github.io/NOM-DU-DEPOT/** dans **Safari**.
+2. Touche **Partager** (carré avec une flèche) → **Sur l'écran d'accueil** → **Ajouter**.
+3. Ouvre My Agenda depuis sa nouvelle icône (plein écran, comme une application), connecte-toi avec ton compte.
+4. **Réglages → Notifications → Autoriser les notifications** pour recevoir les rappels.
+
+Limites de la web app (imposées par iOS et les navigateurs) :
+- les rappels s'affichent **seulement quand My Agenda est ouverte** (au premier plan sur iPhone) ;
+- le lien d'un emploi du temps (.ics) est souvent refusé par le site de l'université : importer le fichier .ics,
+  ou ajouter le lien depuis l'application Windows / Mac / Android (les cours arrivent ensuite par la synchronisation) ;
+- pas de mini ni de lancement au démarrage.
+
+Mises à jour : rien à faire. À chaque ouverture, la web app vérifie la version en ligne et se recharge
+dessus si besoin (écran « Mise à jour de My Agenda… » pendant une ou deux secondes).
+
+### iPhone : application native (plus tard)
 
 Le code est prêt pour iOS (interface téléphone, rappels programmés dans le système, 60 au maximum
 comme l'impose iOS). Il manque la partie Apple, qui demande un **compte Apple Developer (99 $/an)** :
@@ -171,6 +199,10 @@ comme l'impose iOS). Il manque la partie Apple, qui demande un **compte Apple De
   `~/Library/Application Support/com.flux.desktop` sur Mac — pas dans le dossier du programme).
 
 ## Dépannage
+
+- **Web app : le workflow échoue à « deploy » avec « not allowed to deploy to github-pages »** →
+  la règle de tag `v*` manque (section *Web app : GitHub Pages*, étape 2). Relance ensuite le job.
+- **Web app : page 404** → Settings → Pages → Source doit être « GitHub Actions », puis relancer **Actions → Web app**.
 
 - **Le workflow échoue à « Vérifier les secrets »** → un des 4 secrets manque ou est mal nommé.
 - **« Le tag ne correspond pas à la version »** → crée les versions avec `npm version`,

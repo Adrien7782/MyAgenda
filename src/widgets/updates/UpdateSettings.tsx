@@ -14,9 +14,12 @@ export function UpdateSettings() {
   const { status, available, progress, error, lastCheckedAt, check, install } = useUpdateStore();
   const supported = services.updates.supported;
   const downloadMode = services.updates.mode === 'download';
+  const webMode = services.updates.mode === 'web';
   const installing = status === 'installing';
 
-  let statusText = 'My Agenda vérifie automatiquement au démarrage, puis toutes les 6 heures.';
+  let statusText = webMode
+    ? 'La version web se met à jour toute seule à chaque ouverture.'
+    : 'My Agenda vérifie automatiquement au démarrage, puis toutes les 6 heures.';
   if (!supported) statusText = 'Les mises à jour s’installent depuis l’application installée. En développement, récupère le code avec git pull.';
   else if (status === 'checking') statusText = 'Recherche en cours…';
   else if (status === 'up-to-date' && lastCheckedAt) statusText = `Tu as la dernière version (vérifié à ${fmtTime(lastCheckedAt)}).`;
@@ -50,17 +53,19 @@ export function UpdateSettings() {
               </div>
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 3 }}>
                 {available.date ? `Publiée le ${fmtDate(available.date)} · ` : ''}
-                {downloadMode
-                  ? 'Le fichier s’ouvre dans ton navigateur : touche-le une fois téléchargé, puis « Mettre à jour ». Tes données sont conservées.'
-                  : 'L’application redémarre toute seule après l’installation. Tes données ne sont pas touchées.'}
+                {webMode
+                  ? 'La page se recharge sur la nouvelle version. Tes données sont conservées.'
+                  : downloadMode
+                    ? 'Le fichier s’ouvre dans ton navigateur : touche-le une fois téléchargé, puis « Mettre à jour ». Tes données sont conservées.'
+                    : 'L’application redémarre toute seule après l’installation. Tes données ne sont pas touchées.'}
               </div>
             </div>
             <Button variant="primary" icon={<DownloadIcon size={14} />} disabled={installing} onClick={() => void install()}>
-              {downloadMode ? 'Télécharger la mise à jour' : installing ? 'Installation…' : 'Installer et redémarrer'}
+              {webMode ? (installing ? 'Mise à jour…' : 'Mettre à jour maintenant') : downloadMode ? 'Télécharger la mise à jour' : installing ? 'Installation…' : 'Installer et redémarrer'}
             </Button>
           </div>
 
-          {installing && (
+          {installing && !webMode && (
             <div>
               <div style={{ height: 6, borderRadius: 3, background: 'var(--border)', overflow: 'hidden' }}>
                 <div style={{

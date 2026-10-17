@@ -5,6 +5,7 @@ import { isActive } from '../domain/focus/focus';
 import { useFocusStore } from '../store/focusStore';
 import { FocusTimer } from '../widgets/focus/FocusTimer';
 import { useMiniWindowController } from '../widgets/mini/useMiniWindowController';
+import { isWebApp } from '../app/container';
 import { usePhoneLayout } from '../shared/hooks/usePhoneLayout';
 
 /** Mode concentration : un grand compte à rebours. */
@@ -30,7 +31,7 @@ export function FocusPage() {
     <div className="dot-grid" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <PageHeader
         title="Concentration"
-        actions={!phone && !mini.isOpen && (
+        actions={!phone && !isWebApp && !mini.isOpen && (
           <Button size="sm" icon={<WidgetIcon size={13} />} onClick={() => void mini.toggle()}
             title="Garde le compte à rebours et tes tâches sous les yeux pendant que tu travailles">
             {active ? 'Suivre dans le mini' : 'Ouvrir le mini'}

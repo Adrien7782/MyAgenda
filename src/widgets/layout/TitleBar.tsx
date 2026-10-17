@@ -2,6 +2,7 @@ import { WindowControls } from './WindowControls';
 import { AppLogo } from './AppLogo';
 import { hasNativeMacControls } from '../../infrastructure/platform';
 import { usePhoneLayout } from '../../shared/hooks/usePhoneLayout';
+import { isDesktopApp } from '../../app/container';
 
 /** Place réservée aux pastilles natives de macOS, à gauche. */
 export const MAC_TRAFFIC_LIGHTS_WIDTH = 78;
@@ -17,7 +18,8 @@ export function TitleBar() {
   const mac = hasNativeMacControls();
   const phone = usePhoneLayout();
   // Téléphone : pas de barre de titre, seulement la marge de la barre d'état / de l'encoche.
-  if (phone) return <div style={{ height: 'env(safe-area-inset-top)', flexShrink: 0, background: 'var(--bg)' }} />;
+  // Web app, tablette : le navigateur / le système a déjà sa propre barre.
+  if (phone || !isDesktopApp) return <div style={{ height: 'env(safe-area-inset-top)', flexShrink: 0, background: 'var(--bg)' }} />;
   return (
     <div
       data-tauri-drag-region

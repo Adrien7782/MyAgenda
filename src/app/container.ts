@@ -1,7 +1,8 @@
 /**
  * Racine de composition : le SEUL endroit qui choisit les implémentations concrètes.
  * - Dans Tauri  → SQLite (une base par compte) + plugin HTTP + notifications natives
- * - Navigateur  → dépôts en mémoire avec données de démo
+ * - Web app     → la même base SQLite, enregistrée dans le navigateur (sql.js + IndexedDB)
+ * - Navigateur sans serveur de comptes configuré (développement) → dépôts en mémoire avec données de démo
  * - Comptes et synchronisation → Supabase (configuré par le fichier .env)
  */
 import { isDesktopTauri, isMobileApp, isTauri } from '../infrastructure/platform';
@@ -12,7 +13,10 @@ import { createMemoryRepositories } from '../infrastructure/memory/memoryReposit
 import { SupabaseRemoteStore } from '../infrastructure/supabase/supabaseRemoteStore';
 import { SupabaseAuthGateway } from '../infrastructure/supabase/supabaseAuthGateway';
 import { LocalAccountRegistry } from '../infrastructure/session/accountRegistry';
-import { MemoryDatabases, SqliteDatabases } from '../infrastructure/sqlite/sqliteDatabases';
+import { MemoryDatabases, SqliteDatabases, WebDatabases } from '../infrastructure/sqlite/sqliteDatabases';
+import { isSupabaseConfigured } from '../infrastructure/supabase/supabaseClient';
+import { WebNotifier } from '../infrastructure/web/webNotifications';
+import { WebUpdater } from '../infrastructure/web/pwa';
 import { AppHttpClient } from '../infrastructure/http/httpClient';
 import { TauriNotifier } from '../infrastructure/tauri/tauriNotifier';
 import { parseIcs } from '../infrastructure/ical/icsParser';
@@ -30,7 +34,11 @@ import { createSyncService } from '../services/syncService';
 import { createEventColorService } from '../services/eventColorService';
 import { createAuthService } from '../services/authService';
 
-const repositories: Repositories = isTauri()
+/** Web app : navigateur avec comptes configurés (sinon, mode démo pour travailler l'interface). */
+const web = !isTauri() && isSupabaseConfigured;
+const demo = !isTauri() && !isSupabaseConfigured;
+
+const repositories: Repositories = !demo
   ? {
       tasks: new SqliteTaskRepository(),
       events: new SqliteEventRepository(),
@@ -39,10 +47,10 @@ const repositories: Repositories = isTauri()
     }
   : createMemoryRepositories();
 
-const databases = isTauri() ? new SqliteDatabases() : new MemoryDatabases();
+const databases = isTauri() ? new SqliteDatabases() : web ? new WebDatabases() : new MemoryDatabases();
 const sync = createSyncService(new SupabaseRemoteStore(), repositories);
 const settings = createSettingsService(repositories.settings);
-const notifier = new TauriNotifier();
+const notifier = web ? new WebNotifier() : new TauriNotifier();
 const http = new AppHttpClient();
 
 export const services = {
@@ -61,7 +69,7 @@ export const services = {
   databases,
   notifier,
   /** Mises à jour de l'application installée (GitHub Releases). */
-  updates: createUpdateService(createUpdater(http), settings, notifier),
+  updates: createUpdateService(web ? new WebUpdater() : createUpdater(http), settings, notifier),
   reminders: createReminderService(createReminderScheduler(), repositories.settings),
   /** Synchronisation instantanée entre la grande fenêtre et le mini. */
   changeBus: new TauriChangeBus(),
@@ -69,6 +77,10 @@ export const services = {
 
 /** Application installée (vraie base SQLite), sur ordinateur ou téléphone. */
 export const isInstalledApp = isTauri();
+/** Web app (navigateur, ou ajoutée à l'écran d'accueil de l'iPhone). */
+export const isWebApp = web;
+/** Navigateur sans serveur de comptes : données de démonstration non enregistrées. */
+export const isDemo = demo;
 /** Application installée sur un ordinateur (mini, zone de notification, démarrage automatique…). */
 export const isDesktopApp = isDesktopTauri();
 /** Application installée sur un téléphone. */

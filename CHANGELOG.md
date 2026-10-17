@@ -3,6 +3,11 @@
 Écris ici ce qui change **avant** de publier une version (`npm version …`).
 La section de la version publiée s'affiche dans l'application, dans Réglages → Mises à jour.
 
+## 1.1.0
+
+- **My Agenda sur iPhone, iPad et dans tous les navigateurs** : une web app, à ajouter à l'écran d'accueil. Mêmes données grâce à ton compte, fonctionne hors ligne, toujours à jour à l'ouverture.
+- Sur iPad et tablette Android, l'interface ordinateur remplace l'interface téléphone.
+
 ## 1.0.1
 
 - Correction : une seule notification par rappel. L'alerte « Échéance atteinte » envoyée en plus du rappel est supprimée (ordinateur et téléphone).

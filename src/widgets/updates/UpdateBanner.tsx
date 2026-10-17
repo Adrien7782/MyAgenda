@@ -2,12 +2,15 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button, IconButton } from '../../shared/ui';
 import { DownloadIcon, XIcon } from '../../shared/icons/Icons';
 import { useUpdateStore } from '../../store/updateStore';
+import { services } from '../../app/container';
 
 /** Bandeau en haut de l'application quand une nouvelle version est disponible. */
 export function UpdateBanner() {
   const available = useUpdateStore((s) => s.available);
   const dismissed = useUpdateStore((s) => s.bannerDismissed);
   const dismiss = useUpdateStore((s) => s.dismissBanner);
+  const install = useUpdateStore((s) => s.install);
+  const web = services.updates.mode === 'web';
   const navigate = useNavigate();
   const onSettings = useLocation().pathname.startsWith('/settings');
 
@@ -24,7 +27,9 @@ export function UpdateBanner() {
       <span style={{ flex: 1 }}>
         <strong>My Agenda {available.version}</strong> est disponible.
       </span>
-      <Button size="sm" variant="primary" onClick={() => navigate('/settings#updates')}>Voir et installer</Button>
+      {web
+        ? <Button size="sm" variant="primary" onClick={() => void install()}>Mettre à jour</Button>
+        : <Button size="sm" variant="primary" onClick={() => navigate('/settings#updates')}>Voir et installer</Button>}
       <IconButton label="Plus tard" onClick={dismiss}><XIcon size={14} /></IconButton>
     </div>
   );

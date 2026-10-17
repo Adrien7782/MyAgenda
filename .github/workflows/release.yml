@@ -1,4 +1,4 @@
-# Publie une nouvelle version de My Agenda pour Windows et macOS.
+# Publie une nouvelle version de My Agenda : Windows, macOS, Android et la web app.
 #
 # Se déclenche quand un tag "vX.Y.Z" est envoyé sur GitHub (voir RELEASE.md) :
 #   npm version minor        → 0.6.0 devient 0.7.0, commit + tag v0.7.0
@@ -11,6 +11,7 @@
 #      android  : APK signé (workflow android.yml) — s'il échoue, la version sort sans Android
 #   3. publish  : latest.json (fichier lu par les applications pour se mettre à jour),
 #                 puis publication de la Release. Rien n'est visible tant que tout n'a pas réussi.
+#   4. web      : la web app (GitHub Pages) passe sur la même version (workflow web.yml).
 
 name: Publier une version
 
@@ -77,7 +78,8 @@ jobs:
         run: |
           node scripts/release-notes.mjs > release-body.md
           printf '\n\n---\n\n' >> release-body.md
-          cat .github/release-install.md >> release-body.md
+          OWNER=$(echo "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          sed "s#__WEB_APP_URL__#https://$OWNER.github.io/${GITHUB_REPOSITORY#*/}/#g" .github/release-install.md >> release-body.md
 
       - name: Créer la Release (brouillon)
         id: release
@@ -257,3 +259,12 @@ jobs:
               else core.info(`OK ${url}`);
             }
             core.notice(`My Agenda ${process.env.VERSION} publiée pour Windows et macOS.`);
+
+  web:
+    needs: publish
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/web.yml
+    secrets: inherit

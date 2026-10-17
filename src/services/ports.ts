@@ -186,8 +186,9 @@ export interface Updater {
   /**
    * auto : téléchargement, installation et redémarrage dans l'application (Windows, macOS).
    * download : le fichier d'installation est ouvert dans le navigateur, l'utilisateur l'installe (Android).
+   * web : web app, la page se recharge sur la nouvelle version.
    */
-  readonly mode: 'auto' | 'download';
+  readonly mode: 'auto' | 'download' | 'web';
   check(): Promise<AppUpdate | null>;
   /** Télécharge et installe la version trouvée par check(), puis redémarre l'application. */
   install(onProgress?: (p: UpdateProgress) => void): Promise<void>;

@@ -21,3 +21,5 @@ jobs:
         env:
           TZ: Europe/Paris
       - run: npm run build
+      - name: Web app
+        run: npm run build:web

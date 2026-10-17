@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { useUiStore } from '../../store/uiStore';
-import { isInstalledApp } from '../../app/container';
+import { isDemo } from '../../app/container';
 import { usePhoneLayout } from '../../shared/hooks/usePhoneLayout';
 import { TitleBar } from './TitleBar';
 import { Sidebar } from './Sidebar';
@@ -41,7 +41,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
-      {!isInstalledApp && isMiniOpen && <MiniWidget />}
+      {isDemo && isMiniOpen && <MiniWidget />}
       <TaskModal />
       <EventModal />
     </div>

@@ -44,7 +44,8 @@ export function createUpdateService(updater: Updater, settings: SettingsService,
 
     async check(opts: { notify: boolean }): Promise<AppUpdate | null> {
       const update = await updater.check();
-      if (update && opts.notify) {
+      // Web app : pas de notification, la nouvelle version s'installe à l'ouverture suivante.
+      if (update && opts.notify && updater.mode !== 'web') {
         const already = await settings.get(SettingKeys.updateNotifiedVersion);
         if (already !== update.version) {
           await settings.set(SettingKeys.updateNotifiedVersion, update.version);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { services } from '../../app/container';
+import { isWebApp, services } from '../../app/container';
 import { RefreshIcon } from '../../shared/icons/Icons';
 import { Button } from '../../shared/ui';
 
@@ -30,7 +30,7 @@ export function StorageSettings() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ padding: '12px 16px', borderRadius: 12, background: 'var(--surface-el)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <code style={{ flex: 1, minWidth: 240, fontSize: 'var(--text-xs)', color: 'var(--text)', wordBreak: 'break-all' }}>{path || '…'}</code>
-        <Button size="sm" onClick={copy} disabled={!path}>{copied ? 'Copié ✓' : 'Copier le chemin'}</Button>
+        {!isWebApp && <Button size="sm" onClick={copy} disabled={!path}>{copied ? 'Copié ✓' : 'Copier le chemin'}</Button>}
         <Button size="sm" icon={<RefreshIcon size={12} />} onClick={() => void refresh()}>Recompter</Button>
       </div>
 
@@ -47,11 +47,18 @@ export function StorageSettings() {
         <p style={{ fontSize: 'var(--text-xs)', color: 'var(--warn)' }}>Mode navigateur : données de démonstration en mémoire, rien n'est enregistré.</p>
       )}
 
+      {isWebApp ? (
+        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+          Version web : ces chiffres sont lus dans la base enregistrée par ce navigateur. Tout est aussi synchronisé avec ton compte :
+          si les données du site sont effacées (ou sur un autre navigateur), elles reviennent à la connexion.
+        </p>
+      ) : (
       <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', lineHeight: 1.6 }}>
         Ces chiffres sont lus directement dans le fichier SQLite ci-dessus, pas dans l'affichage : s'ils correspondent à ce que tu vois, tout est bien enregistré.
         Pour explorer le fichier toi-même, ouvre-le avec le logiciel gratuit <b>DB Browser for SQLite</b> (lecture seule conseillée, application fermée).
         Côté serveur, tes données synchronisées sont visibles dans Supabase → <b>Table Editor</b>.
       </p>
+      )}
     </div>
   );
 }

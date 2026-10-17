@@ -1,5 +1,6 @@
 import type { ReminderScheduler, ScheduledNotification } from '../../services/ports';
 import { isIOS, isMobileApp, isTauri } from '../platform';
+import { showWebNotification } from '../web/webNotifications';
 
 /** Ordinateur : le planning est confié au Rust (fil natif, insensible à la mise en veille de la fenêtre). */
 export class TauriReminderScheduler implements ReminderScheduler {
@@ -72,7 +73,13 @@ export class MobileReminderScheduler implements ReminderScheduler {
   }
 }
 
-/** Mode navigateur : minuteries JavaScript + notifications du navigateur (si autorisées). */
+/** Retard au-delà duquel un rappel n'est plus affiché (page restée en arrière-plan, iPhone en veille…). */
+const BROWSER_LATE_MS = 15 * 60 * 1000;
+
+/**
+ * Web app : minuteries JavaScript + notifications du navigateur (si autorisées).
+ * Les rappels ne s'affichent que pendant que My Agenda est ouverte.
+ */
 export class BrowserReminderScheduler implements ReminderScheduler {
   private timers: ReturnType<typeof setTimeout>[] = [];
   private listeners = new Set<(key: string) => void>();
@@ -80,8 +87,10 @@ export class BrowserReminderScheduler implements ReminderScheduler {
   async schedule(list: ScheduledNotification[]): Promise<void> {
     this.timers.forEach(clearTimeout);
     this.timers = list.map((r) => setTimeout(() => {
-      if ('Notification' in window && Notification.permission === 'granted') new Notification(r.title, { body: r.body });
-      else console.info('[Rappel]', r.title, r.body);
+      // Page endormie puis réveillée longtemps après : un rappel aussi en retard n'a plus de sens.
+      if (Date.now() - r.atMs <= BROWSER_LATE_MS) {
+        void showWebNotification(r.title, r.body, r.key).then((shown) => { if (!shown) console.info('[Rappel]', r.title, r.body); });
+      }
       this.listeners.forEach((l) => l(r.key));
     }, Math.max(0, r.atMs - Date.now())));
   }

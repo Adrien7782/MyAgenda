@@ -5,6 +5,7 @@ import { CalendarIcon, CheckSquareIcon, SettingsIcon, TimerIcon, TrashIcon, Widg
 import { isActive } from '../../domain/focus/focus';
 import { useFocusStore } from '../../store/focusStore';
 import { useMiniWindowController } from '../mini/useMiniWindowController';
+import { isWebApp } from '../../app/container';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useDeletedTasks } from '../../store/taskStore';
 import { useUpdateStore } from '../../store/updateStore';
@@ -90,9 +91,12 @@ export function Sidebar() {
 
       <div style={{ flex: 1 }} />
 
-      <button type="button" title={mini.isOpen ? 'Fermer My Agenda Mini' : 'Ouvrir My Agenda Mini'} aria-label="Mode mini" aria-pressed={mini.isOpen} onClick={() => void mini.toggle()} style={navStyle(mini.isOpen)}>
-        <WidgetIcon size={18} />
-      </button>
+      {/* Le mini est une fenêtre séparée : seulement dans l'application installée. */}
+      {!isWebApp && (
+        <button type="button" title={mini.isOpen ? 'Fermer My Agenda Mini' : 'Ouvrir My Agenda Mini'} aria-label="Mode mini" aria-pressed={mini.isOpen} onClick={() => void mini.toggle()} style={navStyle(mini.isOpen)}>
+          <WidgetIcon size={18} />
+        </button>
+      )}
       <SidebarLink to="/settings" label={updateVersion ? `Réglages — version ${updateVersion} disponible` : 'Réglages'} dot={!!updateVersion}>
         <SettingsIcon size={18} />
       </SidebarLink>

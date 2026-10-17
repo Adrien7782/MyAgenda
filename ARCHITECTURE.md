@@ -12,7 +12,8 @@ Application desktop Tauri 2 + React + TypeScript, multi-utilisateur.
 copy .env.example .env   # puis renseigner l'URL et la clé Supabase (voir SETUP_SUPABASE.md)
 npm install
 npm run tauri dev     # application complète (vraie base SQLite)
-npm run dev           # interface seule dans le navigateur (données de démo)
+npm run dev           # dans le navigateur : web app (avec .env) ou données de démo (sans .env)
+npm run build:web     # web app dans dist/ (publiée sur GitHub Pages par .github/workflows/web.yml)
 npm test              # tests unitaires (vitest)
 npm run typecheck     # vérification TypeScript
 npm version patch     # publier une version : voir RELEASE.md (GitHub construit et signe le .exe)
@@ -31,7 +32,7 @@ Les dépendances vont toujours vers le bas : une couche n'importe jamais une cou
 | `infrastructure/` | Implémentations concrètes : SQLite, mémoire, Supabase, Tauri, HTTP, parseur .ics | services/ports, domain |
 | `domain/` | Entités et règles métier pures (aucune dépendance React/Tauri) | rien |
 | `shared/` | Composants UI génériques (`ui/`), icônes, hooks, styles, libellés | domain (types) |
-| `app/` | Démarrage, routes et **`container.ts`** : le seul fichier qui choisit SQLite (Tauri) ou la mémoire (navigateur) | tout |
+| `app/` | Démarrage, routes et **`container.ts`** : le seul fichier qui choisit SQLite (Tauri), SQLite dans le navigateur (web app) ou la mémoire (démo) | tout |
 
 ## Deux fenêtres, une seule application
 
@@ -57,6 +58,11 @@ syncService (toutes les 30 s, au retour du réseau)
 - Suppressions : `tasks.is_deleted = 2` / `events.is_deleted = 1` sont des pierres tombales synchronisées.
 - La session Supabase est mémorisée localement : l'app redémarre connectée, même hors ligne.
 - Mode navigateur sans `.env` : pas d'écran de connexion, données de démo en mémoire.
+- **Web app** (navigateur avec `.env`) : la même base SQLite tourne dans la page (sql.js, WebAssembly) et
+  est enregistrée dans IndexedDB (`infrastructure/sqlite/webSqlite.ts`) ; les dépôts SQLite sont identiques.
+  Un seul onglet actif à la fois (`infrastructure/web/singleTab.ts`). Service worker + `version.json` :
+  la web app passe sur la dernière version à chaque ouverture (`infrastructure/web/pwa.ts`).
+  Rappels : notifications du navigateur, seulement pendant que la page est ouverte.
 
 ## Rappels et notifications
 

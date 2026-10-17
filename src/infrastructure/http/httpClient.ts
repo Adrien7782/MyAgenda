@@ -17,8 +17,8 @@ export class AppHttpClient implements HttpClient {
         res = await window.fetch(url);
       }
     } catch (e) {
-      const hint = isTauri() ? '' : " (dans le navigateur, le lien est souvent bloqué par CORS : lance l'application avec npm run tauri dev)";
-      throw new Error(`Impossible de joindre le lien${hint}. ${e instanceof Error ? e.message : ''}`.trim());
+      const hint = isTauri() ? '' : " : sur la web app, le site de l'emploi du temps bloque souvent la lecture du lien. Importe plutôt le fichier .ics, ou ajoute le lien depuis l'application Windows, Mac ou Android : les cours arrivent ensuite ici par la synchronisation";
+      throw new Error(`Impossible de joindre le lien${hint}.${isTauri() && e instanceof Error ? ` ${e.message}` : ''}`);
     }
     if (!res.ok) throw new Error(`Le serveur a répondu ${res.status} ${res.statusText}`.trim());
     return res.text();

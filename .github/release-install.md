@@ -20,4 +20,7 @@ Une fois téléchargé, touche le fichier : Android demande d'autoriser l'instal
 (**Paramètres → Autoriser cette source**), puis **Installer**. Si Play Protect affiche un avertissement : **Installer quand même**.
 Au premier lancement, autorise les **notifications** pour recevoir les rappels.
 
+**iPhone / iPad** — pas de fichier à télécharger : ouvre la **web app** __WEB_APP_URL__ dans Safari,
+puis **Partager → Sur l'écran d'accueil**. Elle se met à jour toute seule et marche aussi dans n'importe quel navigateur.
+
 À faire une seule fois : les mises à jour suivantes s'installent depuis l'application (Réglages → Mises à jour).

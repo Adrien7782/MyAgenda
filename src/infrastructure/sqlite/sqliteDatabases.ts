@@ -23,3 +23,13 @@ export class MemoryDatabases implements LocalDatabases {
   async countRows(): Promise<Record<string, number>> { return {}; }
   async pathOf(file: string) { return `(mémoire du navigateur) ${file}`; }
 }
+
+/** Web app : bases enregistrées dans le stockage du navigateur. */
+export class WebDatabases implements LocalDatabases {
+  readonly legacyFile = LEGACY_DB_FILE;
+  readonly persistent = true;
+  select(file: string) { selectDatabase(file); }
+  currentFile() { return currentDatabaseFile(); }
+  countRows(file: string) { return countRows(file); }
+  async pathOf(file: string) { return `Stockage de ce navigateur (${file})`; }
+}

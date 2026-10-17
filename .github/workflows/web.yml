@@ -1,0 +1,71 @@
+# Web app (iPhone, iPad, et n'importe quel navigateur) publiée sur GitHub Pages :
+#   https://<compte>.github.io/<dépôt>/
+#
+# Se lance tout seul à chaque version publiée (fin du workflow « Publier une version »),
+# ou à la main : onglet Actions → « Web app » → Run workflow (branche main).
+# Les applications web ouvertes passent d'elles-mêmes sur la nouvelle version à l'ouverture suivante.
+#
+# Une seule fois : Settings → Pages → Source : « GitHub Actions »,
+# puis Settings → Environments → github-pages → autoriser aussi les tags « v* » (voir RELEASE.md).
+
+name: Web app
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Vérifier les secrets du dépôt
+        shell: bash
+        env:
+          SB_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SB_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SB_URL" ] || [ -z "$SB_KEY" ]; then
+            echo "::error::Secrets VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquants (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+
+      - name: Construire la web app
+        run: npm run build:web
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Adresse de la web app
+        run: |
+          echo "::notice::Web app en ligne : ${{ steps.deployment.outputs.page_url }}"
