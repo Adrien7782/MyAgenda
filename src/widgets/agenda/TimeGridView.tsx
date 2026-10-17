@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { OPEN_HINT, openGesture } from '../../shared/device';
 import type { CalendarEvent } from '../../domain/event/event';
 import type { Task } from '../../domain/task/task';
-import { eventEnd, isAllDay, layoutOverlapping, type TimedItem } from '../../domain/event/eventRules';
+import { eventEnd, isAllDay, layoutOverlapping, type TimedItem, occurrenceCovering } from '../../domain/event/eventRules';
 import { DAYS_SHORT_FR, dayKey, formatTime, minutesOfDay, parseDayKey, weekdayIndex } from '../../domain/shared/date';
 import { TaskAgendaLabel, taskAgendaStyle, taskTooltip } from './TaskAgendaItem';
 import { useNow } from '../../shared/hooks/useNow';
@@ -37,16 +37,12 @@ type Block =
   | (TimedItem & { kind: 'event'; event: CalendarEvent })
   | (TimedItem & { kind: 'task'; task: Task });
 
-/** Plage horaire de l'évènement ce jour-là (gère annuels et évènements à cheval sur minuit). */
+/** Plage horaire de l'évènement ce jour-là (gère les répétitions et les évènements à cheval sur minuit). */
 function eventRangeOnDay(ev: CalendarEvent, key: string): [number, number] {
-  const start = new Date(ev.start_at);
-  if (ev.is_annual) {
-    const s = minutesOfDay(start);
-    return [s, Math.min(1440, s + ev.duration_min)];
-  }
+  const occ = occurrenceCovering(ev, key) ?? { start: new Date(ev.start_at), end: eventEnd(ev) };
   const dayStart = parseDayKey(key).getTime();
-  const s = Math.max(0, (start.getTime() - dayStart) / 60000);
-  const e = Math.min(1440, (eventEnd(ev).getTime() - dayStart) / 60000);
+  const s = Math.max(0, (occ.start.getTime() - dayStart) / 60000);
+  const e = Math.min(1440, (occ.end.getTime() - dayStart) / 60000);
   return [s, Math.max(e, s + 15)];
 }
 

@@ -1,19 +1,21 @@
 import type { ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import { CalendarIcon, CheckSquareIcon, SettingsIcon, TimerIcon, TrashIcon, WidgetIcon } from '../../shared/icons/Icons';
+import { CalendarIcon, CheckSquareIcon, SettingsIcon, TimerIcon, TrashIcon, WidgetIcon, NoteIcon } from '../../shared/icons/Icons';
 import { isActive } from '../../domain/focus/focus';
 import { useFocusStore } from '../../store/focusStore';
 import { useMiniWindowController } from '../mini/useMiniWindowController';
 import { isWebApp } from '../../app/container';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useDeletedTasks } from '../../store/taskStore';
+import { useDeletedNotes } from '../../store/noteStore';
 import { useUpdateStore } from '../../store/updateStore';
 import { AppLogo } from './AppLogo';
 
 const NAV = [
   { to: '/tasks', Icon: CheckSquareIcon, label: 'Tâches' },
   { to: '/agenda', Icon: CalendarIcon, label: 'Agenda' },
+  { to: '/notes', Icon: NoteIcon, label: 'Notes' },
   { to: '/focus', Icon: TimerIcon, label: 'Concentration' },
   { to: '/trash', Icon: TrashIcon, label: 'Corbeille' },
 ];
@@ -59,7 +61,7 @@ function SidebarLink({ to, label, children, badge, dot, live }: { to: string; la
 
 export function Sidebar() {
   const mini = useMiniWindowController();
-  const deleted = useDeletedTasks();
+  const deleted = [...useDeletedTasks(), ...useDeletedNotes()];
   const trashSeenAt = useSettingsStore((s) => s.trashSeenAt);
   const markTrashSeen = useSettingsStore((s) => s.markTrashSeen);
   const onTrashPage = useLocation().pathname.startsWith('/trash');

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { CalendarEvent } from '../../domain/event/event';
 import type { Task } from '../../domain/task/task';
 import { formatTime, parseDayKey } from '../../domain/shared/date';
-import { isAllDay } from '../../domain/event/eventRules';
+import { eventRecurrence, isAllDay } from '../../domain/event/eventRules';
 import { useElementSize } from '../../shared/hooks/useElementSize';
 import { agendaTaskColor } from '../../shared/presentation/taskPresentation';
 import { hiddenPerDay, layoutWeek, monthWeeks, type WeekSegment } from './monthLayout';
@@ -38,7 +38,7 @@ function Bar({ seg, colorOf }: { seg: WeekSegment; colorOf: (ev: CalendarEvent) 
   if (seg.item.kind === 'event') {
     const ev = seg.item.event;
     color = colorOf(ev);
-    label = !seg.long && !isAllDay(ev) && !ev.is_annual ? `${formatTime(ev.start_at)} ${ev.title}` : ev.title;
+    label = !seg.long && !isAllDay(ev) && eventRecurrence(ev) !== 'yearly' ? `${formatTime(ev.start_at)} ${ev.title}` : ev.title;
   } else {
     color = agendaTaskColor(seg.item.task);
     done = seg.item.task.status === 'done';

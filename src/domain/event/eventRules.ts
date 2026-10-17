@@ -1,5 +1,5 @@
 import { addDays, dayKey, dayKeyFromIso, minutesOfDay, MINUTE_MS, parseDayKey } from '../shared/date';
-import type { CalendarEvent } from './event';
+import type { CalendarEvent, EventRecurrence } from './event';
 
 export function eventStart(ev: CalendarEvent): Date {
   return new Date(ev.start_at);
@@ -7,20 +7,6 @@ export function eventStart(ev: CalendarEvent): Date {
 
 export function eventEnd(ev: CalendarEvent): Date {
   return new Date(new Date(ev.start_at).getTime() + ev.duration_min * MINUTE_MS);
-}
-
-/**
- * Début de la prochaine occurrence : la date de l'évènement, ou pour un évènement annuel
- * (anniversaire…) sa date de cette année — ou de l'an prochain si elle est déjà passée.
- */
-export function nextOccurrenceStart(ev: CalendarEvent, now = new Date()): Date {
-  const start = new Date(ev.start_at);
-  if (!ev.is_annual) return start;
-  const thisYear = new Date(start);
-  thisYear.setFullYear(now.getFullYear());
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (thisYear < today) thisYear.setFullYear(now.getFullYear() + 1);
-  return thisYear;
 }
 
 export function isImported(ev: CalendarEvent): boolean {
@@ -55,21 +41,126 @@ export function allDayLastKey(ev: CalendarEvent): string {
   return dayKey(addDays(parseDayKey(dayKeyFromIso(ev.start_at)), allDayCount(ev) - 1));
 }
 
-/** L'évènement a-t-il lieu ce jour-là ? (gère les annuels et les évènements sur plusieurs jours) */
+/** L'évènement a-t-il lieu ce jour-là ? (répétitions, évènements sur plusieurs jours) */
 export function occursOnDay(ev: CalendarEvent, key: string): boolean {
-  if (ev.is_annual) {
-    const d = new Date(ev.start_at);
-    const [, m, day] = key.split('-').map(Number);
-    return d.getMonth() + 1 === m && d.getDate() === day;
-  }
+  return occurrenceCovering(ev, key) !== null;
+}
+
+// ── Répétitions ──────────────────────────────────────────────────────────────
+
+/** Répétition effective (les anciens évènements « annuels » n'ont que is_annual). */
+export function eventRecurrence(ev: Pick<CalendarEvent, 'recurrence' | 'is_annual'>): EventRecurrence {
+  if (ev.recurrence && ev.recurrence !== 'none') return ev.recurrence;
+  return ev.is_annual ? 'yearly' : 'none';
+}
+
+export function isRecurring(ev: Pick<CalendarEvent, 'recurrence' | 'is_annual'>): boolean {
+  return eventRecurrence(ev) !== 'none';
+}
+
+/** Nombre de jours calendaires couverts par UNE occurrence (1 pour un évènement dans la journée). */
+function spanDays(ev: CalendarEvent): number {
+  if (isAllDay(ev)) return allDayCount(ev);
+  // Moins de 24 h (même à cheval sur minuit) : affiché seulement le jour où il commence.
+  if (ev.duration_min < 1440) return 1;
   const startKey = dayKeyFromIso(ev.start_at);
-  if (startKey === key) return true;
-  // Journées entières : on compte en jours calendaires (pas en minutes, faux au changement d'heure).
-  if (isAllDay(ev)) return key > startKey && key <= allDayLastKey(ev);
-  if (ev.duration_min < 1440) return false;
-  // Multi-jours : la fin est exclusive.
-  const endKey = dayKeyFromIso(new Date(eventEnd(ev).getTime() - 1).toISOString());
-  return key > startKey && key <= endKey;
+  const endKey = dayKeyFromIso(new Date(Math.max(eventStart(ev).getTime(), eventEnd(ev).getTime() - 1)).toISOString());
+  return daysBetween(startKey, endKey) + 1;
+}
+
+function keyParts(key: string): [number, number, number] {
+  const [y, m, d] = key.split('-').map(Number);
+  return [y, m, d];
+}
+
+/** Une occurrence commence-t-elle ce jour-là ? */
+function startsOn(ev: CalendarEvent, key: string): boolean {
+  const rec = eventRecurrence(ev);
+  const startKey = dayKeyFromIso(ev.start_at);
+  if (rec === 'none') return key === startKey;
+  if (key < startKey) return false;
+  if (ev.recurrence_until && key > ev.recurrence_until) return false;
+  const [, sm, sd] = keyParts(startKey);
+  const [, m, d] = keyParts(key);
+  switch (rec) {
+    case 'daily': return true;
+    case 'weekly': return daysBetween(startKey, key) % 7 === 0;
+    case 'monthly': return d === sd; // le 31 : seulement les mois qui en ont un
+    case 'yearly': return d === sd && m === sm;
+  }
+}
+
+/** Début d'une occurrence qui commence le jour `key` (même heure que l'évènement d'origine). */
+function occurrenceStartOn(ev: CalendarEvent, key: string): Date {
+  const start = eventStart(ev);
+  const [y, m, d] = keyParts(key);
+  return new Date(y, m - 1, d, start.getHours(), start.getMinutes(), start.getSeconds());
+}
+
+function occurrenceEnd(ev: CalendarEvent, start: Date): Date {
+  if (isAllDay(ev)) return addDays(start, allDayCount(ev));
+  return new Date(start.getTime() + ev.duration_min * MINUTE_MS);
+}
+
+/** L'occurrence de l'évènement qui recouvre le jour `key` (début et fin), ou null. */
+export function occurrenceCovering(ev: CalendarEvent, key: string): { start: Date; end: Date } | null {
+  if (!isRecurring(ev)) {
+    const startKey = dayKeyFromIso(ev.start_at);
+    if (key < startKey) return null;
+    if (key === startKey) return { start: eventStart(ev), end: eventEnd(ev) };
+    // Journées entières : on compte en jours calendaires (pas en minutes, faux au changement d'heure).
+    if (isAllDay(ev)) return key <= allDayLastKey(ev) ? { start: eventStart(ev), end: eventEnd(ev) } : null;
+    if (ev.duration_min < 1440) return null;
+    // Multi-jours / à cheval sur minuit : la fin est exclusive.
+    const endKey = dayKeyFromIso(new Date(eventEnd(ev).getTime() - 1).toISOString());
+    return key <= endKey ? { start: eventStart(ev), end: eventEnd(ev) } : null;
+  }
+  const span = Math.min(spanDays(ev), 366);
+  const day = parseDayKey(key);
+  for (let back = 0; back < span; back++) {
+    const k = back === 0 ? key : dayKey(addDays(day, -back));
+    if (startsOn(ev, k)) {
+      const start = occurrenceStartOn(ev, k);
+      return { start, end: occurrenceEnd(ev, start) };
+    }
+  }
+  return null;
+}
+
+/** Débuts des occurrences entre `from` et `to` (au plus `max`), dans l'ordre. */
+export function occurrencesBetween(ev: CalendarEvent, from: Date, to: Date, max = 60): Date[] {
+  const rec = eventRecurrence(ev);
+  const start = eventStart(ev);
+  if (rec === 'none') return start >= from && start <= to ? [start] : [];
+  const out: Date[] = [];
+  const startKey = dayKeyFromIso(ev.start_at);
+  // On démarre au plus tard au premier jour utile (pas besoin de parcourir des années en arrière).
+  let day = parseDayKey(dayKey(from) > startKey ? dayKey(from) : startKey);
+  const lastKey = ev.recurrence_until && ev.recurrence_until < dayKey(to) ? ev.recurrence_until : dayKey(to);
+  for (let i = 0; out.length < max && dayKey(day) <= lastKey && i < 800; i++) {
+    const key = dayKey(day);
+    if (startsOn(ev, key)) {
+      const s = occurrenceStartOn(ev, key);
+      if (s >= from && s <= to) out.push(s);
+    }
+    // Pas d'avance : 1 jour, ou 7 pour une répétition hebdomadaire une fois calée sur le bon jour.
+    day = addDays(day, rec === 'weekly' && startsOn(ev, key) ? 7 : 1);
+  }
+  return out;
+}
+
+/**
+ * Début de la prochaine occurrence : la date de l'évènement, ou pour un évènement répété
+ * la première occurrence d'aujourd'hui ou après (même si l'heure d'aujourd'hui est passée).
+ */
+export function nextOccurrenceStart(ev: CalendarEvent, now = new Date()): Date {
+  if (!isRecurring(ev)) return eventStart(ev);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const rec = eventRecurrence(ev);
+  const horizon = addDays(today, rec === 'yearly' ? 366 * 4 + 1 : rec === 'monthly' ? 400 : 8);
+  const next = occurrencesBetween(ev, today, horizon, 1)[0];
+  // Répétition terminée (date de fin passée) : on garde la dernière date connue.
+  return next ?? eventStart(ev);
 }
 
 export interface TimedItem {

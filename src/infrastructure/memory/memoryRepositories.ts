@@ -4,14 +4,16 @@
  */
 import type { Attachment, SubTask, Task, TaskPatch } from '../../domain/task/task';
 import type { CalendarEvent, CalendarSource, EventPatch } from '../../domain/event/event';
+import type { Note, NotePatch } from '../../domain/note/note';
 import type {
   CalendarSourceRepository,
   EventRepository,
+  NoteRepository,
   Repositories,
   SettingsRepository,
   TaskRepository,
 } from '../../services/ports';
-import { demoEvents, demoTasks } from './demoData';
+import { demoEvents, demoNotes, demoTasks } from './demoData';
 
 const clone = <T>(v: T): T => structuredClone(v);
 
@@ -117,6 +119,27 @@ class MemorySourceRepository implements CalendarSourceRepository {
   async delete(id: string) { this.sources.delete(id); }
 }
 
+class MemoryNoteRepository implements NoteRepository {
+  private notes = new Map<string, Note>();
+  constructor(seed: Note[]) { for (const n of seed) this.notes.set(n.id, clone(n)); }
+  async listAll() { return [...this.notes.values()].filter((n) => n.is_deleted < 2).map(clone); }
+  async listChangedSince(since: string) { return [...this.notes.values()].filter((n) => n.updated_at > since).map(clone); }
+  async insert(n: Note) { this.notes.set(n.id, clone(n)); }
+  async update(id: string, patch: NotePatch, updatedAt: string) {
+    const n = this.notes.get(id);
+    if (n) this.notes.set(id, { ...n, ...patch, updated_at: updatedAt });
+  }
+  async setDeleted(id: string, deleted: boolean, updatedAt: string) {
+    const n = this.notes.get(id);
+    if (n) this.notes.set(id, { ...n, is_deleted: deleted ? 1 : 0, updated_at: updatedAt });
+  }
+  async purge(id: string, updatedAt: string) {
+    const n = this.notes.get(id);
+    if (n) this.notes.set(id, { ...n, is_deleted: 2, title: '', content: '', updated_at: updatedAt });
+  }
+  async upsert(n: Note) { this.notes.set(n.id, clone(n)); }
+}
+
 /** Les réglages survivent au rechargement de la page grâce au localStorage (si disponible). */
 class LocalStorageSettingsRepository implements SettingsRepository {
   private memory = new Map<string, string>();
@@ -139,6 +162,7 @@ export function createMemoryRepositories(opts: { demo?: boolean } = {}): Reposit
   return {
     tasks: new MemoryTaskRepository(demo ? demoTasks() : []),
     events: new MemoryEventRepository(demo ? demoEvents() : []),
+    notes: new MemoryNoteRepository(demo ? demoNotes() : []),
     sources: new MemorySourceRepository(),
     settings: new LocalStorageSettingsRepository(),
   };

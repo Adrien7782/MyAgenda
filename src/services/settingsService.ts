@@ -22,6 +22,9 @@ export const SettingKeys = {
   lastSyncAt: 'last_sync_at',
   pullCursorTasks: 'sync_cursor_tasks',
   pullCursorEvents: 'sync_cursor_events',
+  pullCursorNotes: 'sync_cursor_notes',
+  /** Notes : curseur d'envoi séparé, qui n'avance que si le serveur a bien la table des notes. */
+  lastNotesSyncAt: 'last_notes_sync_at',
 } as const;
 
 export type SettingKey = (typeof SettingKeys)[keyof typeof SettingKeys];

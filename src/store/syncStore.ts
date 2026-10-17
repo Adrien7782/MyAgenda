@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { services } from '../app/container';
 import { useTaskStore } from './taskStore';
 import { useEventStore } from './eventStore';
+import { useNoteStore } from './noteStore';
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'offline';
 
@@ -30,9 +31,10 @@ export const useSyncStore = create<SyncState>((set) => ({
     running = true;
     set({ status: 'syncing' });
     try {
-      const { pulled } = await services.sync.sync();
+      const { pulled, pulledNotes } = await services.sync.sync();
       // Des changements venus d'un autre appareil → on relit la base (et le mini est prévenu).
-      if (pulled > 0) {
+      if (pulledNotes) await useNoteStore.getState().load();
+      if (pulled - (pulledNotes ?? 0) > 0) {
         await Promise.all([useTaskStore.getState().load(), useEventStore.getState().load()]);
         services.changeBus.publish('tasks');
         services.changeBus.publish('events');

@@ -1,5 +1,6 @@
 import type { CalendarEvent } from '../../domain/event/event';
 import type { SubTask, Task } from '../../domain/task/task';
+import type { Note } from '../../domain/note/note';
 import type { RemotePage, RemoteStore } from '../../services/ports';
 import { getSupabase, isSupabaseConfigured } from './supabaseClient';
 
@@ -16,8 +17,15 @@ interface RemoteEventRow {
   id: string; title: string; start_at: string; duration_min: number; comment: string | null;
   participants: string | null; location: string | null; is_annual: number; is_deleted: number;
   reminder_offset_min: number | null; reminder_at: string | null;
+  /** Ajoutées en 1.1 (relancer supabase/schema.sql) : absentes des anciennes bases serveur. */
+  recurrence?: string | null; recurrence_until?: string | null;
   created_at: string; updated_at: string;
   synced_at?: string;
+}
+
+/** Le serveur n'a pas encore une colonne / une table ajoutée par une mise à jour (schema.sql pas relancé). */
+function isMissingSchema(message: string): boolean {
+  return /schema cache|does not exist|could not find/i.test(message);
 }
 
 /** Colonne inconnue côté serveur = script supabase/schema.sql pas relancé après une mise à jour. */
@@ -54,6 +62,7 @@ const rowToEvent = (r: RemoteEventRow): CalendarEvent => ({
   comment: r.comment ?? undefined, participants: r.participants ?? undefined, location: r.location ?? undefined,
   is_annual: r.is_annual, is_deleted: r.is_deleted, created_at: r.created_at, updated_at: r.updated_at,
   reminder_offset_min: r.reminder_offset_min ?? null, reminder_at: r.reminder_at ?? null,
+  recurrence: (r.recurrence ?? null) as CalendarEvent['recurrence'], recurrence_until: r.recurrence_until ?? null,
 });
 
 const eventToRow = (e: CalendarEvent): RemoteEventRow => ({
@@ -61,7 +70,29 @@ const eventToRow = (e: CalendarEvent): RemoteEventRow => ({
   participants: e.participants ?? null, location: e.location ?? null, is_annual: e.is_annual,
   is_deleted: e.is_deleted ?? 0, created_at: e.created_at, updated_at: e.updated_at,
   reminder_offset_min: e.reminder_offset_min ?? null, reminder_at: e.reminder_at ?? null,
+  recurrence: e.recurrence ?? null, recurrence_until: e.recurrence_until ?? null,
 });
+
+interface RemoteNoteRow {
+  id: string; title: string; content: string; color: string | null; is_pinned: number; is_deleted: number;
+  created_at: string; updated_at: string;
+  synced_at?: string;
+}
+
+const noteToRow = (n: Note): RemoteNoteRow => ({
+  id: n.id, title: n.title, content: n.content, color: n.color ?? null, is_pinned: n.is_pinned, is_deleted: n.is_deleted,
+  created_at: n.created_at, updated_at: n.updated_at,
+});
+
+const rowToNote = (r: RemoteNoteRow): Note => ({
+  id: r.id, title: r.title ?? '', content: r.content ?? '', color: r.color ?? null, is_pinned: r.is_pinned ?? 0,
+  is_deleted: r.is_deleted ?? 0, created_at: r.created_at, updated_at: r.updated_at,
+});
+
+function withoutRecurrence(r: RemoteEventRow): RemoteEventRow {
+  const { recurrence: _r, recurrence_until: _u, ...rest } = r;
+  return rest;
+}
 
 /**
  * Adaptateur Supabase pour la synchronisation. Grâce aux règles RLS,
@@ -81,9 +112,20 @@ export class SupabaseRemoteStore implements RemoteStore {
     }
   }
 
+  /** Base serveur pas encore mise à jour (colonnes de répétition absentes) : on envoie sans elles. */
+  private eventsWithoutRecurrence = false;
+
   async pushEvents(events: CalendarEvent[]): Promise<void> {
     for (let i = 0; i < events.length; i += 500) {
-      const { error } = await getSupabase().from('events').upsert(events.slice(i, i + 500).map(eventToRow), { onConflict: 'id' });
+      const rows = events.slice(i, i + 500).map(eventToRow);
+      const send = (r: RemoteEventRow[]) => getSupabase().from('events').upsert(r, { onConflict: 'id' });
+      let { error } = this.eventsWithoutRecurrence ? await send(rows.map(withoutRecurrence)) : await send(rows);
+      if (error && !this.eventsWithoutRecurrence && /recurrence/i.test(error.message) && isMissingSchema(error.message)) {
+        // La synchronisation continue ; seules les répétitions ne passent pas tant que schema.sql n'est pas relancé.
+        console.warn('[Sync] Colonnes de répétition absentes du serveur : relance supabase/schema.sql.');
+        this.eventsWithoutRecurrence = true;
+        ({ error } = await send(rows.map(withoutRecurrence)));
+      }
       if (error) throw new Error(`Envoi des évènements : ${schemaHint(error.message)}`);
     }
   }
@@ -111,5 +153,37 @@ export class SupabaseRemoteStore implements RemoteStore {
   async pullEvents(cursor?: string): Promise<RemotePage<CalendarEvent>> {
     const page = await this.pull<RemoteEventRow>('events', cursor);
     return { rows: page.rows.map(rowToEvent), cursor: page.cursor };
+  }
+
+  // ── Notes (table ajoutée en 1.1 : tant que schema.sql n'est pas relancé, elles restent locales) ──
+
+  async pushNotes(notes: Note[]): Promise<boolean> {
+    if (!notes.length) return this.notesTableExists();
+    for (let i = 0; i < notes.length; i += 200) {
+      const rows = notes.slice(i, i + 200).map(noteToRow);
+      const { error } = await getSupabase().from('notes').upsert(rows, { onConflict: 'id' });
+      if (error && isMissingSchema(error.message)) return false;
+      if (error) throw new Error(`Envoi des notes : ${schemaHint(error.message)}`);
+    }
+    this.notesTableSeen = true;
+    return true;
+  }
+
+  async pullNotes(cursor?: string): Promise<RemotePage<Note> | null> {
+    try {
+      const page = await this.pull<RemoteNoteRow>('notes', cursor);
+      return { rows: page.rows.map(rowToNote), cursor: page.cursor };
+    } catch (e) {
+      if (e instanceof Error && isMissingSchema(e.message)) return null;
+      throw e;
+    }
+  }
+
+  private notesTableSeen = false;
+  private async notesTableExists(): Promise<boolean> {
+    if (this.notesTableSeen) return true;
+    const { error } = await getSupabase().from('notes').select('id').limit(1);
+    this.notesTableSeen = !error || !isMissingSchema(error.message);
+    return this.notesTableSeen;
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from '../widgets/layout/AppLayout';
 import { TitleBar } from '../widgets/layout/TitleBar';
@@ -6,6 +6,10 @@ import { TasksPage } from '../pages/TasksPage';
 import { AgendaPage } from '../pages/AgendaPage';
 import { TrashPage } from '../pages/TrashPage';
 import { FocusPage } from '../pages/FocusPage';
+import { NotesPage } from '../pages/NotesPage';
+
+// L'éditeur de texte n'est chargé qu'à l'ouverture d'une note (démarrage plus rapide).
+const NoteEditorPage = lazy(() => import('../pages/NoteEditorPage'));
 import { SettingsPage } from '../pages/SettingsPage';
 import { MiniApp } from '../widgets/mini/MiniApp';
 import { AuthScreen } from '../widgets/auth/AuthScreen';
@@ -51,6 +55,8 @@ function SignedInApp({ role }: { role: WindowRole }) {
           <Route index element={<Navigate to="/tasks" replace />} />
           <Route path="tasks" element={<TasksPage />} />
           <Route path="agenda" element={<AgendaPage />} />
+          <Route path="notes" element={<NotesPage />} />
+          <Route path="notes/:id" element={<Suspense fallback={null}><NoteEditorPage /></Suspense>} />
           <Route path="focus" element={<FocusPage />} />
           <Route path="trash" element={<TrashPage />} />
           <Route path="settings" element={<SettingsPage />} />

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { create } from 'zustand';
+import { eventRecurrence } from '../domain/event/eventRules';
 import type { CalendarEvent, CalendarSource, EventDraft } from '../domain/event/event';
 import { colorForTitle, type EventColorRules } from '../domain/event/eventColors';
 import { services } from '../app/container';
@@ -147,6 +148,6 @@ export function useEventColor(): (ev: CalendarEvent) => string {
     const colors = new Map(sources.map((s) => [s.id, s.color]));
     return (ev: CalendarEvent) =>
       colorForTitle(titleColors, ev.title) ??
-      (ev.is_annual ? 'var(--warn)' : (ev.source_id && colors.get(ev.source_id)) || 'var(--accent)');
+      (eventRecurrence(ev) === 'yearly' ? 'var(--warn)' : (ev.source_id && colors.get(ev.source_id)) || 'var(--accent)');
   }, [sources, titleColors]);
 }

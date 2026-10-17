@@ -2,7 +2,7 @@ import type { CalendarEvent } from '../../domain/event/event';
 import { OPEN_HINT, openGesture } from '../../shared/device';
 import type { Task } from '../../domain/task/task';
 import { formatTime } from '../../domain/shared/date';
-import { isAllDay } from '../../domain/event/eventRules';
+import { eventRecurrence, isAllDay } from '../../domain/event/eventRules';
 import { TaskAgendaLabel, taskAgendaStyle, taskTooltip } from './TaskAgendaItem';
 
 /** Petite étiquette d'évènement / tâche dans la vue Mois. Double-clic = modifier. */
@@ -18,7 +18,7 @@ export function EventChip({ event, color, onOpen }: { event: CalendarEvent; colo
     >
       <span style={{ width: 4, height: 4, borderRadius: '50%', background: color, flexShrink: 0 }} />
       <span style={{ fontSize: 10, color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {!isAllDay(event) && !event.is_annual && <b style={{ fontWeight: 600 }}>{formatTime(event.start_at)} </b>}
+        {!isAllDay(event) && eventRecurrence(event) !== 'yearly' && <b style={{ fontWeight: 600 }}>{formatTime(event.start_at)} </b>}
         {event.title}
       </span>
     </div>

@@ -1,3 +1,6 @@
+/** Répétition d'un évènement (comme les tâches, plus « chaque année »). */
+export type EventRecurrence = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -6,7 +9,12 @@ export interface CalendarEvent {
   comment?: string;
   participants?: string;
   location?: string;
+  /** Ancien indicateur « chaque année » : gardé à jour (= recurrence 'yearly') pour les versions précédentes. */
   is_annual: number;
+  /** Répétition (absente sur les évènements créés avant la 1.1 : voir is_annual). */
+  recurrence?: EventRecurrence | null;
+  /** Dernier jour (inclus, « AAAA-MM-JJ ») où l'évènement se répète ; null = sans fin. */
+  recurrence_until?: string | null;
   /** Renseigné quand l'évènement provient d'un calendrier importé (.ics). */
   source_id?: string;
   external_uid?: string;
@@ -28,6 +36,8 @@ export interface EventDraft {
   participants?: string;
   location?: string;
   is_annual: number;
+  recurrence?: EventRecurrence;
+  recurrence_until?: string | null;
   reminder_offset_min?: number | null;
   reminder_at?: string | null;
 }

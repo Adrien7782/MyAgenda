@@ -8,6 +8,8 @@
 import { isDesktopTauri, isMobileApp, isTauri } from '../infrastructure/platform';
 import { SqliteTaskRepository } from '../infrastructure/sqlite/sqliteTaskRepository';
 import { SqliteEventRepository } from '../infrastructure/sqlite/sqliteEventRepository';
+import { SqliteNoteRepository } from '../infrastructure/sqlite/sqliteNoteRepository';
+import { createNoteService } from '../services/noteService';
 import { SqliteCalendarSourceRepository, SqliteSettingsRepository } from '../infrastructure/sqlite/sqliteSettingsRepositories';
 import { createMemoryRepositories } from '../infrastructure/memory/memoryRepositories';
 import { SupabaseRemoteStore } from '../infrastructure/supabase/supabaseRemoteStore';
@@ -42,6 +44,7 @@ const repositories: Repositories = !demo
   ? {
       tasks: new SqliteTaskRepository(),
       events: new SqliteEventRepository(),
+      notes: new SqliteNoteRepository(),
       sources: new SqliteCalendarSourceRepository(),
       settings: new SqliteSettingsRepository(),
     }
@@ -56,6 +59,7 @@ const http = new AppHttpClient();
 export const services = {
   tasks: createTaskService(repositories.tasks),
   events: createEventService(repositories.events),
+  notes: createNoteService(repositories.notes),
   eventColors: createEventColorService(repositories.settings),
   settings,
   calendarImport: createCalendarImportService({

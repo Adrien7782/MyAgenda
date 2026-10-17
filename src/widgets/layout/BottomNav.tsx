@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import { CalendarIcon, CheckSquareIcon, SettingsIcon, TimerIcon, TrashIcon } from '../../shared/icons/Icons';
+import { CalendarIcon, CheckSquareIcon, SettingsIcon, TimerIcon, TrashIcon, NoteIcon } from '../../shared/icons/Icons';
 import { isActive } from '../../domain/focus/focus';
 import { useFocusStore } from '../../store/focusStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useDeletedTasks } from '../../store/taskStore';
+import { useDeletedNotes } from '../../store/noteStore';
 import { useUpdateStore } from '../../store/updateStore';
 
 function Tab({ to, label, icon, badge, dot, live }: {
@@ -47,7 +48,7 @@ function Tab({ to, label, icon, badge, dot, live }: {
 
 /** Navigation principale sur téléphone : onglets en bas de l'écran, au-dessus de la barre système. */
 export function BottomNav() {
-  const deleted = useDeletedTasks();
+  const deleted = [...useDeletedTasks(), ...useDeletedNotes()];
   const trashSeenAt = useSettingsStore((s) => s.trashSeenAt);
   const markTrashSeen = useSettingsStore((s) => s.markTrashSeen);
   const onTrashPage = useLocation().pathname.startsWith('/trash');
@@ -66,6 +67,7 @@ export function BottomNav() {
     }}>
       <Tab to="/tasks" label="Tâches" icon={<CheckSquareIcon size={19} />} />
       <Tab to="/agenda" label="Agenda" icon={<CalendarIcon size={19} />} />
+      <Tab to="/notes" label="Notes" icon={<NoteIcon size={19} />} />
       <Tab to="/focus" label="Focus" icon={<TimerIcon size={19} />} live={focusStatus} />
       <Tab to="/trash" label="Corbeille" icon={<TrashIcon size={19} />} badge={trashCount} />
       <Tab to="/settings" label="Réglages" icon={<SettingsIcon size={19} />} dot={!!updateVersion} />

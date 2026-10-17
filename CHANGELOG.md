@@ -5,6 +5,12 @@ La section de la version publiée s'affiche dans l'application, dans Réglages �
 
 ## 1.1.0
 
+- **Notes** : une nouvelle page pour garder tes idées et tout ce qu'il faut retenir. Titre, texte mis en forme (titres, gras, italique, souligné, barré, surligné, listes, cases à cocher, citations), enregistrement automatique, recherche, notes épinglées et colorées, téléchargement en .txt (ou partage sur téléphone), corbeille. Synchronisées sur tous tes appareils.
+- **Évènements répétés** : chaque jour, chaque semaine, chaque mois ou chaque année, avec une date de fin si besoin. Un rappel sonne à chaque occurrence.
+- **12 nouvelles couleurs** pour les évènements (plus vives, bien lisibles sur les thèmes clairs).
+
+## 1.0.2
+
 - **My Agenda sur iPhone, iPad et dans tous les navigateurs** : une web app, à ajouter à l'écran d'accueil. Mêmes données grâce à ton compte, fonctionne hors ligne, toujours à jour à l'ouverture.
 - Sur iPad et tablette Android, l'interface ordinateur remplace l'interface téléphone.
 - Web app : import d'un emploi du temps par lien iCal grâce au relais Supabase « ics-proxy » (voir SETUP_SUPABASE.md).

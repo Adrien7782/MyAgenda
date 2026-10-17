@@ -1,6 +1,6 @@
 import type { CalendarEvent } from '../domain/event/event';
 import type { Task } from '../domain/task/task';
-import { eventEnd } from '../domain/event/eventRules';
+import { eventEnd, eventRecurrence } from '../domain/event/eventRules';
 import { parseTags } from '../domain/task/taskRules';
 
 const csvCell = (v: string) => `"${v.replace(/"/g, '""')}"`;
@@ -26,6 +26,16 @@ export function tasksToCsv(tasks: Task[]): string {
   return '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
 }
 
+/** Répétition au format iCalendar (lu par Google Agenda, Apple Calendrier, Outlook…). */
+function rrule(ev: CalendarEvent): string[] {
+  const rec = eventRecurrence(ev);
+  if (rec === 'none') return [];
+  const freq = { daily: 'DAILY', weekly: 'WEEKLY', monthly: 'MONTHLY', yearly: 'YEARLY' }[rec];
+  // UNTIL inclut tout le dernier jour.
+  const until = ev.recurrence_until ? `;UNTIL=${ev.recurrence_until.replace(/-/g, '')}T235959Z` : '';
+  return [`RRULE:FREQ=${freq}${until}`];
+}
+
 export function agendaToIcs(tasks: Task[], events: CalendarEvent[]): string {
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//My Agenda//FR'];
   for (const t of tasks.filter((t) => t.is_deleted === 0 && t.deadline)) {
@@ -46,7 +56,7 @@ export function agendaToIcs(tasks: Task[], events: CalendarEvent[]): string {
       `SUMMARY:${icsText(ev.title)}`,
       `DTSTART:${icsDate(new Date(ev.start_at))}`,
       `DTEND:${icsDate(eventEnd(ev))}`,
-      ...(ev.is_annual ? ['RRULE:FREQ=YEARLY'] : []),
+      ...rrule(ev),
       ...(ev.location ? [`LOCATION:${icsText(ev.location)}`] : []),
       ...(ev.comment ? [`DESCRIPTION:${icsText(ev.comment)}`] : []),
       'END:VEVENT',

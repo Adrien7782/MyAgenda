@@ -1,3 +1,5 @@
+import type { Note } from '../../domain/note/note';
+import { createNoteService } from '../noteService';
 import { describe, expect, it } from 'vitest';
 import { createSyncService } from '../syncService';
 import { createTaskService } from '../taskService';
@@ -11,8 +13,11 @@ import { createMemoryRepositories } from '../../infrastructure/memory/memoryRepo
 /** Faux serveur Supabase : horodatage serveur + isolation par utilisateur (comme les règles RLS). */
 class FakeServer {
   clock = 0;
+  /** Simule un serveur où supabase/schema.sql n'a pas encore été relancé (pas de table des notes). */
+  notesTable = true;
   tasks = new Map<string, { row: Task; owner: string; synced: number }>();
   events = new Map<string, { row: CalendarEvent; owner: string; synced: number }>();
+  notes = new Map<string, { row: Note; owner: string; synced: number }>();
   storeFor(user: string): RemoteStore {
     const server = this;
     const page = <T>(map: Map<string, { row: T; owner: string; synced: number }>, cursor?: string): RemotePage<T> => {
@@ -33,6 +38,12 @@ class FakeServer {
       },
       pullTasks: async (c) => page(server.tasks, c),
       pullEvents: async (c) => page(server.events, c),
+      async pushNotes(ns) {
+        if (!server.notesTable) return false;
+        for (const n of ns) server.notes.set(n.id, { row: structuredClone(n), owner: user, synced: ++server.clock });
+        return true;
+      },
+      pullNotes: async (c) => (server.notesTable ? page(server.notes, c) : null),
     };
   }
 }
@@ -43,6 +54,7 @@ function device(server: FakeServer, user: string) {
     repos,
     tasks: createTaskService(repos.tasks),
     events: createEventService(repos.events),
+    notes: createNoteService(repos.notes),
     sync: createSyncService(server.storeFor(user), repos),
   };
 }
@@ -119,6 +131,46 @@ describe('synchronisation multi-appareils', () => {
     await a.repos.events.replaceSourceEvents('src1', [{ id: 'ics-1', title: 'TD', start_at: '2026-10-20T08:00:00.000Z', duration_min: 60, is_annual: 0, source_id: 'src1', created_at: 'x', updated_at: '2026-10-15T00:00:00.000Z' }]);
     await a.sync.sync();
     expect(server.events.size).toBe(0);
+  });
+});
+
+describe('synchronisation des notes', () => {
+  it('une note écrite sur le PC arrive sur le téléphone, ses modifications et sa suppression aussi', async () => {
+    const server = new FakeServer();
+    const pc = device(server, 'alice');
+    const phone = device(server, 'alice');
+    const note = await pc.notes.create({ title: 'Idées', content: '<p>Voyage</p>' });
+    await pc.sync.sync();
+    await phone.sync.sync();
+    expect((await phone.repos.notes.listAll()).map((n) => n.title)).toEqual(['Idées']);
+    await tick();
+    const edited = await phone.notes.update((await phone.repos.notes.listAll())[0], { content: '<p>Voyage en Italie</p>' });
+    await phone.sync.sync();
+    await pc.sync.sync();
+    expect((await pc.repos.notes.listAll())[0].content).toBe('<p>Voyage en Italie</p>');
+    await tick();
+    await pc.notes.purge(edited);
+    await pc.sync.sync();
+    await phone.sync.sync();
+    expect(await phone.repos.notes.listAll()).toEqual([]);
+    expect(note.id).toBe(edited.id);
+  });
+
+  it('serveur pas encore mis à jour : les notes restent locales puis partent dès que la table existe', async () => {
+    const server = new FakeServer();
+    server.notesTable = false;
+    const pc = device(server, 'alice');
+    const phone = device(server, 'alice');
+    await pc.notes.create({ title: 'Avant la mise à jour du serveur' });
+    await pc.tasks.create(draft('Tâche'));
+    await pc.sync.sync(); // les tâches passent, les notes attendent
+    expect(server.notes.size).toBe(0);
+    expect(server.tasks.size).toBe(1);
+    server.notesTable = true;
+    await tick();
+    await pc.sync.sync();
+    await phone.sync.sync();
+    expect((await phone.repos.notes.listAll()).map((n) => n.title)).toEqual(['Avant la mise à jour du serveur']);
   });
 });
 

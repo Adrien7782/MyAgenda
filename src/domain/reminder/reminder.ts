@@ -6,7 +6,7 @@
  */
 import type { CalendarEvent } from '../event/event';
 import type { Task } from '../task/task';
-import { nextOccurrenceStart } from '../event/eventRules';
+import { nextOccurrenceStart, occurrencesBetween } from '../event/eventRules';
 import { MINUTE_MS } from '../shared/date';
 
 export interface ReminderFields {
@@ -117,16 +117,28 @@ export function planReminders(tasks: Task[], events: CalendarEvent[], opts: Plan
 
   for (const ev of events) {
     if (ev.is_deleted) continue;
-    const start = nextOccurrenceStart(ev, new Date(now));
     const setting = readReminder(ev);
-    // Pour un évènement annuel, un délai s'applique à l'occurrence de l'année.
-    const at = reminderTime(setting, start);
     const place = ev.location ? ` — ${ev.location}` : '';
-    if (at) {
+    if (setting.kind === 'at') {
+      // Date fixe : une seule notification, rattachée à la prochaine occurrence.
+      const start = nextOccurrenceStart(ev, new Date(now));
+      const at = new Date(setting.at);
       push({ key: `event:${ev.id}:${at.toISOString()}`, atMs: at.getTime(), title: '🔔 Rappel', body: `${ev.title}${place} — ${fmtWhen(start, at.getTime())}` });
-    } else if (opts.autoAlerts && setting.kind === 'none' && !ev.source_id) {
-      // Alerte automatique seulement pour les évènements personnels (pas les 34 cours importés).
-      push({ key: `auto-event:${ev.id}:${start.toISOString()}`, atMs: start.getTime() - AUTO_EVENT_WARN_MIN * MINUTE_MS, title: `📅 Dans ${AUTO_EVENT_WARN_MIN} min`, body: `${ev.title}${place}` });
+      continue;
+    }
+    // Évènement répété : un rappel par occurrence dans la fenêtre planifiée.
+    const lead = setting.kind === 'before' ? setting.minutes : AUTO_EVENT_WARN_MIN;
+    const auto = setting.kind === 'none';
+    // Alerte automatique seulement pour les évènements personnels (pas les cours importés).
+    if (auto && (!opts.autoAlerts || ev.source_id)) continue;
+    const starts = occurrencesBetween(ev, new Date(from + lead * MINUTE_MS), new Date(to + lead * MINUTE_MS), 40);
+    for (const start of starts) {
+      const atMs = start.getTime() - lead * MINUTE_MS;
+      if (auto) {
+        push({ key: `auto-event:${ev.id}:${start.toISOString()}`, atMs, title: `📅 Dans ${AUTO_EVENT_WARN_MIN} min`, body: `${ev.title}${place}` });
+      } else {
+        push({ key: `event:${ev.id}:${new Date(atMs).toISOString()}`, atMs, title: '🔔 Rappel', body: `${ev.title}${place} — ${fmtWhen(start, atMs)}` });
+      }
     }
   }
 

@@ -393,3 +393,103 @@ export function PieChartIcon(p: IconProps) {
     </Icon>
   );
 }
+
+// ── Notes ────────────────────────────────────────────────────────────────────
+
+export function NoteIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+      <polyline points="14 3 14 9 20 9" />
+      <line x1="8" y1="13" x2="16" y2="13" />
+      <line x1="8" y1="17" x2="13" y2="17" />
+    </Icon>
+  );
+}
+
+export function PinIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <path d="M12 17v5" />
+      <path d="M9 4h6l-1 6 3 3v2H7v-2l3-3z" />
+    </Icon>
+  );
+}
+
+export function CopyIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <rect x="9" y="9" width="12" height="12" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </Icon>
+  );
+}
+
+export function ShareIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" />
+      <polyline points="16 6 12 2 8 6" />
+      <line x1="12" y1="2" x2="12" y2="15" />
+    </Icon>
+  );
+}
+
+export function ListBulletIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <line x1="9" y1="6" x2="20" y2="6" /><line x1="9" y1="12" x2="20" y2="12" /><line x1="9" y1="18" x2="20" y2="18" />
+      <circle cx="4.5" cy="6" r="1" fill="currentColor" /><circle cx="4.5" cy="12" r="1" fill="currentColor" /><circle cx="4.5" cy="18" r="1" fill="currentColor" />
+    </Icon>
+  );
+}
+
+export function ListNumberIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <line x1="10" y1="6" x2="20" y2="6" /><line x1="10" y1="12" x2="20" y2="12" /><line x1="10" y1="18" x2="20" y2="18" />
+      <path d="M4 5l1.5-1v5" /><path d="M3.5 13.5c0-1 .8-1.5 1.5-1.5s1.5.5 1.5 1.3c0 1.2-3 2-3 3.7h3" />
+    </Icon>
+  );
+}
+
+export function ListCheckIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <rect x="3" y="4" width="5" height="5" rx="1" /><polyline points="4 13.5 5.5 15 8 12" />
+      <line x1="11" y1="6.5" x2="21" y2="6.5" /><line x1="11" y1="13.5" x2="21" y2="13.5" /><line x1="11" y1="19" x2="21" y2="19" />
+    </Icon>
+  );
+}
+
+export function QuoteIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <path d="M7 7h4v4c0 3-2 5-4 6" /><path d="M14 7h4v4c0 3-2 5-4 6" />
+    </Icon>
+  );
+}
+
+export function UndoIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <path d="M9 14L4 9l5-5" /><path d="M4 9h11a5 5 0 0 1 0 10h-3" />
+    </Icon>
+  );
+}
+
+export function RedoIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <path d="M15 14l5-5-5-5" /><path d="M20 9H9a5 5 0 0 0 0 10h3" />
+    </Icon>
+  );
+}
+
+export function HighlightIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <path d="M15 5l4 4-8 8H7v-4z" /><path d="M4 21h16" />
+    </Icon>
+  );
+}

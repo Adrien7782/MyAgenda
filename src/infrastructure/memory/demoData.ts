@@ -1,3 +1,4 @@
+import type { Note } from '../../domain/note/note';
 import type { Task } from '../../domain/task/task';
 import type { CalendarEvent } from '../../domain/event/event';
 import { addDays, DAY_MS } from '../../domain/shared/date';
@@ -38,5 +39,19 @@ export function demoEvents(): CalendarEvent[] {
     { ...base, id: 'ev-2', title: 'Review design', start_at: at(2, 14, 30), duration_min: 90 },
     { ...base, id: 'ev-3', title: 'Anniversaire de Léa', start_at: at(5, 9), duration_min: 30, is_annual: 1 },
     { ...base, id: 'ev-4', title: 'Sport', start_at: at(0, 10, 30), duration_min: 60, location: 'Gymnase' },
+  ];
+}
+
+export function demoNotes(): Note[] {
+  const at = (h: number) => new Date(Date.now() - h * 3600_000).toISOString();
+  return [
+    {
+      id: 'note-1', title: 'Idées de cadeaux', color: '#F2AFCF', is_pinned: 1, is_deleted: 0, created_at: at(80), updated_at: at(2),
+      content: '<p>Pour l\'anniversaire de <strong>Léa</strong> :</p><ul><li><p>Un livre sur les volcans</p></li><li><p>Une plante grasse</p></li></ul>',
+    },
+    {
+      id: 'note-2', title: 'Courses', color: null, is_pinned: 0, is_deleted: 0, created_at: at(30), updated_at: at(5),
+      content: '<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><p>Pain</p></li><li data-type="taskItem" data-checked="false"><p>Lait</p></li><li data-type="taskItem" data-checked="false"><p>Café</p></li></ul>',
+    },
   ];
 }

@@ -20,7 +20,28 @@ export const PASTEL_PALETTE: { name: string; hex: string }[] = [
   { name: 'Mauve', hex: '#D3B2EE' },
   { name: 'Sable', hex: '#D9C7AE' },
   { name: 'Perle', hex: '#C3CBD8' },
+  // Couleurs vives : bien visibles sur les thèmes clairs et pour distinguer d'un coup d'œil.
+  { name: 'Bleu roi', hex: '#4F7DFF' },
+  { name: 'Turquoise', hex: '#14B8C4' },
+  { name: 'Émeraude', hex: '#10B981' },
+  { name: 'Vert pomme', hex: '#84CC16' },
+  { name: 'Moutarde', hex: '#EAB308' },
+  { name: 'Orange', hex: '#F97316' },
+  { name: 'Rouge', hex: '#EF4444' },
+  { name: 'Framboise', hex: '#E11D74' },
+  { name: 'Violet', hex: '#8B5CF6' },
+  { name: 'Indigo', hex: '#6366F1' },
+  { name: 'Cuivre', hex: '#C2703D' },
+  { name: 'Ardoise', hex: '#64748B' },
 ];
+
+/** Coche lisible (sombre ou claire) sur une pastille de couleur. */
+export function contrastOn(hex: string): string {
+  const m = hex.replace('#', '').match(/^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+  if (!m) return '#1a1f2e';
+  const [r, g, b] = m.slice(1).map((x) => parseInt(x, 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.4 ? '#1a1f2e' : '#ffffff';
+}
 
 export function eventColorKey(title: string): string {
   return title.trim().replace(/\s+/g, ' ').toLocaleLowerCase('fr-FR');

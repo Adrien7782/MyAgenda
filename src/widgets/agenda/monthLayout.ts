@@ -1,6 +1,6 @@
 import type { CalendarEvent } from '../../domain/event/event';
 import type { Task } from '../../domain/task/task';
-import { isAllDay, occursOnDay } from '../../domain/event/eventRules';
+import { isAllDay, isRecurring, occurrenceCovering } from '../../domain/event/eventRules';
 import { addDays, dayKey, dayKeyFromIso, parseDayKey, startOfWeek } from '../../domain/shared/date';
 import type { AgendaFilter } from './useAgendaNavigation';
 
@@ -42,23 +42,31 @@ function startMinutes(item: MonthItem): string {
  * placée en premier ; chaque barre prend la première ligne libre sur toutes ses colonnes.
  */
 export function layoutWeek(weekKeys: string[], tasks: Task[], events: CalendarEvent[], filter: AgendaFilter): WeekSegment[] {
-  const before = dayKey(addDays(parseDayKey(weekKeys[0]), -1));
   const after = dayKey(addDays(parseDayKey(weekKeys[6]), 1));
   const raw: Omit<WeekSegment, 'lane'>[] = [];
 
   if (filter !== 'tasks') {
     for (const event of events) {
-      const cols = weekKeys.map((k, i) => (occursOnDay(event, k) ? i : -1)).filter((i) => i >= 0);
-      if (!cols.length) continue;
-      const startCol = cols[0];
-      const endCol = cols[cols.length - 1];
-      raw.push({
-        item: { kind: 'event', id: event.id, event },
-        startCol, endCol,
-        continuesBefore: startCol === 0 && !event.is_annual && occursOnDay(event, before),
-        continuesAfter: endCol === 6 && !event.is_annual && occursOnDay(event, after),
-        long: isAllDay(event) || endCol > startCol,
+      // Colonnes regroupées par occurrence : un évènement répété peut revenir plusieurs fois dans la semaine.
+      const byOccurrence = new Map<number, number[]>();
+      weekKeys.forEach((k, i) => {
+        const occ = occurrenceCovering(event, k);
+        if (!occ) return;
+        const t = occ.start.getTime();
+        byOccurrence.set(t, [...(byOccurrence.get(t) ?? []), i]);
       });
+      const recurring = isRecurring(event);
+      for (const [startMs, cols] of byOccurrence) {
+        const startCol = cols[0];
+        const endCol = cols[cols.length - 1];
+        raw.push({
+          item: { kind: 'event', id: recurring ? `${event.id}@${startMs}` : event.id, event },
+          startCol, endCol,
+          continuesBefore: startCol === 0 && dayKey(new Date(startMs)) < weekKeys[0],
+          continuesAfter: endCol === 6 && occurrenceCovering(event, after)?.start.getTime() === startMs,
+          long: isAllDay(event) || endCol > startCol,
+        });
+      }
     }
   }
   if (filter !== 'events') {

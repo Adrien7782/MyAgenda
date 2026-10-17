@@ -86,6 +86,7 @@ export async function countRows(file: string): Promise<Record<string, number>> {
     'Évènements importés (.ics)': 'SELECT COUNT(*) AS n FROM events WHERE source_id IS NOT NULL',
     'Calendriers importés': 'SELECT COUNT(*) AS n FROM calendar_sources',
     'Pièces jointes': 'SELECT COUNT(*) AS n FROM attachments',
+    'Notes': 'SELECT COUNT(*) AS n FROM notes WHERE is_deleted = 0',
     'Réglages': 'SELECT COUNT(*) AS n FROM settings',
   };
   for (const [label, sql] of Object.entries(queries)) {
@@ -201,6 +202,24 @@ async function migrate(db: SqlDatabase): Promise<void> {
       await tryExec(`ALTER TABLE ${table} ADD COLUMN reminder_at TEXT`);
     }
     await setVersion(5);
+  }
+  if (version < 6) {
+    // 1.1 : évènements répétés (chaque jour / semaine / mois / année) et notes
+    await tryExec('ALTER TABLE events ADD COLUMN recurrence TEXT');
+    await tryExec('ALTER TABLE events ADD COLUMN recurrence_until TEXT');
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS notes (
+        id          TEXT PRIMARY KEY,
+        title       TEXT NOT NULL DEFAULT '',
+        content     TEXT NOT NULL DEFAULT '',
+        color       TEXT,
+        is_pinned   INTEGER NOT NULL DEFAULT 0,
+        is_deleted  INTEGER NOT NULL DEFAULT 0,
+        created_at  TEXT NOT NULL,
+        updated_at  TEXT NOT NULL
+      )`);
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_updated ON notes(updated_at)');
+    await setVersion(6);
   }
 }
 

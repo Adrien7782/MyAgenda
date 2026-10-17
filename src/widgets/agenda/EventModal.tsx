@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CalendarEvent, EventDraft } from '../../domain/event/event';
-import { allDayLastKey, allDaySpan, daysBetween, isAllDay } from '../../domain/event/eventRules';
+import type { CalendarEvent, EventDraft, EventRecurrence } from '../../domain/event/event';
+import { allDayLastKey, allDaySpan, daysBetween, eventRecurrence, isAllDay } from '../../domain/event/eventRules';
+import { EVENT_RECURRENCE_OPTIONS } from '../../shared/presentation/eventPresentation';
 import { colorForTitle, eventColorKey, PASTEL_PALETTE } from '../../domain/event/eventColors';
 import { dayKeyFromIso, fromLocalInputValue, toLocalInputValue } from '../../domain/shared/date';
 import { TrashIcon } from '../../shared/icons/Icons';
-import { Button, ColorPicker, Field, FieldRow, Modal, TextArea, TextInput, Toggle } from '../../shared/ui';
+import { Button, ColorPicker, Field, FieldRow, Modal, OptionGroup, TextArea, TextInput, Toggle } from '../../shared/ui';
 import { readReminder, writeReminder, type ReminderSetting } from '../../domain/reminder/reminder';
 import { nextOccurrenceStart } from '../../domain/event/eventRules';
 import { ReminderField } from '../reminders/ReminderField';
@@ -48,7 +49,8 @@ function EventModalContent({ event, defaultStart, onClose }: { event: CalendarEv
   const [location, setLocation] = useState(event?.location ?? '');
   const [participants, setParticipants] = useState(event?.participants ?? '');
   const [comment, setComment] = useState(event?.comment ?? '');
-  const [annual, setAnnual] = useState(event?.is_annual === 1);
+  const [recurrence, setRecurrence] = useState<EventRecurrence>(event ? eventRecurrence(event) : 'none');
+  const [until, setUntil] = useState(event?.recurrence_until ?? '');
   const [reminder, setReminder] = useState<ReminderSetting>(event ? readReminder(event) : { kind: 'none' });
   const [color, setColor] = useState<string | null>(event ? colorForTitle(titleColors, event.title) ?? null : null);
   const [saving, setSaving] = useState(false);
@@ -57,7 +59,9 @@ function EventModalContent({ event, defaultStart, onClose }: { event: CalendarEv
   useEffect(() => { setTimeout(() => titleRef.current?.focus(), 30); }, []);
 
   const dayCount = daysBetween(fromDay, toDay) + 1;
-  const valid = title.trim().length > 0 && (allDay ? !!fromDay && !!toDay && dayCount >= 1 : !!fromLocalInputValue(startAt));
+  const firstDay = allDay ? fromDay : (fromLocalInputValue(startAt) ? dayKeyFromIso(fromLocalInputValue(startAt)!) : '');
+  const untilValid = recurrence === 'none' || !until || until >= firstDay;
+  const valid = title.trim().length > 0 && untilValid && (allDay ? !!fromDay && !!toDay && dayCount >= 1 : !!fromLocalInputValue(startAt));
 
   function toggleAllDay(v: boolean) {
     setAllDay(v);
@@ -92,7 +96,9 @@ function EventModalContent({ event, defaultStart, onClose }: { event: CalendarEv
         location: location.trim() || undefined,
         participants: participants.trim() || undefined,
         comment: comment.trim() || undefined,
-        is_annual: annual ? 1 : 0,
+        is_annual: recurrence === 'yearly' ? 1 : 0,
+        recurrence,
+        recurrence_until: recurrence !== 'none' && until ? until : null,
         ...writeReminder(reminder),
       };
       await save(event?.id ?? null, draft);
@@ -147,7 +153,7 @@ function EventModalContent({ event, defaultStart, onClose }: { event: CalendarEv
           value={color}
           onChange={setColor}
           palette={PASTEL_PALETTE}
-          defaultColor={event?.is_annual || annual ? 'var(--warn)' : source?.color ?? 'var(--accent)'}
+          defaultColor={recurrence === 'yearly' ? 'var(--warn)' : source?.color ?? 'var(--accent)'}
           defaultLabel={source ? `Couleur de « ${source.name} »` : 'Couleur du thème'}
         />
       </Field>
@@ -184,6 +190,17 @@ function EventModalContent({ event, defaultStart, onClose }: { event: CalendarEv
           </Field>
         </>
       )}
+      <Field label="Répétition" hint={recurrence === 'yearly' ? 'Anniversaire, fête… (même jour chaque année)' : recurrence === 'monthly' ? 'Le même jour chaque mois' : undefined}>
+        <OptionGroup options={EVENT_RECURRENCE_OPTIONS} value={recurrence} onChange={setRecurrence} />
+      </Field>
+      {recurrence !== 'none' && (
+        <Field label="Jusqu'au" hint={!untilValid ? 'La fin doit être après le premier jour.' : until ? 'Dernier jour inclus.' : 'Laisse vide pour répéter sans fin.'}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <TextInput type="date" value={until} min={firstDay || undefined} onChange={(e) => setUntil(e.target.value)} style={{ flex: 1 }} />
+            {until && <Button size="sm" onClick={() => setUntil('')}>Sans fin</Button>}
+          </div>
+        </Field>
+      )}
       <Field label="Lieu">
         <TextInput value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Salle, adresse…" />
       </Field>
@@ -193,8 +210,8 @@ function EventModalContent({ event, defaultStart, onClose }: { event: CalendarEv
         due={(() => {
           const iso = allDay ? new Date(`${fromDay}T00:00`).toISOString() : fromLocalInputValue(startAt);
           if (!iso) return null;
-          // Pour un anniversaire, le délai s'applique à la prochaine occurrence.
-          return nextOccurrenceStart({ id: '', title, start_at: iso, duration_min: duration, is_annual: annual ? 1 : 0, created_at: '', updated_at: '' });
+          // Évènement répété : le délai s'applique à la prochaine occurrence.
+          return nextOccurrenceStart({ id: '', title, start_at: iso, duration_min: allDay ? dayCount * 1440 : duration, is_annual: 0, recurrence, recurrence_until: until || null, created_at: '', updated_at: '' });
         })()}
         dueLabel="le début"
       />
@@ -204,11 +221,6 @@ function EventModalContent({ event, defaultStart, onClose }: { event: CalendarEv
       <Field label="Notes">
         <TextArea rows={2} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Description…" />
       </Field>
-      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
-          <Toggle checked={annual} onChange={setAnnual} color="var(--warn)" label="Annuel" /> Chaque année (anniversaire, fête…)
-        </label>
-      </div>
     </Modal>
   );
 }

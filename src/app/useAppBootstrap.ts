@@ -7,6 +7,7 @@ import { useInterval } from '../shared/hooks/useInterval';
 import { useSettingsStore } from '../store/settingsStore';
 import { useTaskStore } from '../store/taskStore';
 import { useEventStore } from '../store/eventStore';
+import { useNoteStore } from '../store/noteStore';
 import { useSyncStore } from '../store/syncStore';
 import { useUiStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore';
@@ -41,7 +42,7 @@ export function useAppBootstrap(role: WindowRole): { ready: boolean; error: stri
     (async () => {
       try {
         await useSettingsStore.getState().hydrate();
-        await Promise.all([useTaskStore.getState().load(), useEventStore.getState().load(), useFocusStore.getState().hydrate()]);
+        await Promise.all([useTaskStore.getState().load(), useEventStore.getState().load(), useNoteStore.getState().load(), useFocusStore.getState().hydrate()]);
         if (cancelled) return;
         setReady(true);
         if (!isMain) return;
@@ -64,6 +65,7 @@ export function useAppBootstrap(role: WindowRole): { ready: boolean; error: stri
     void services.changeBus.subscribe((channel) => {
       if (channel === 'tasks') void useTaskStore.getState().load();
       if (channel === 'events') void useEventStore.getState().load();
+      if (channel === 'notes') void useNoteStore.getState().load();
       if (channel === 'settings') void useSettingsStore.getState().hydrate();
       if (channel === 'mini' && isMain) void miniWindow.isOpen().then((open) => useUiStore.getState().setMiniOpen(open));
       if (channel === 'auth') void useAuthStore.getState().restore();

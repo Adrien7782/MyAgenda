@@ -5,6 +5,7 @@
  */
 import type { Attachment, SubTask, Task, TaskPatch } from '../domain/task/task';
 import type { CalendarEvent, CalendarSource, EventPatch } from '../domain/event/event';
+import type { Note, NotePatch } from '../domain/note/note';
 
 /**
  * Cycle de vie d'une tâche via `is_deleted` :
@@ -46,6 +47,19 @@ export interface EventRepository {
   /** Remplace tous les évènements d'une source importée (upsert + suppression des disparus). */
   replaceSourceEvents(sourceId: string, events: CalendarEvent[]): Promise<void>;
   deleteBySource(sourceId: string): Promise<void>;
+}
+
+/** Notes : même cycle de vie que les tâches (0 active, 1 corbeille, 2 pierre tombale). */
+export interface NoteRepository {
+  /** Notes actives et dans la corbeille. */
+  listAll(): Promise<Note[]>;
+  listChangedSince(since: string): Promise<Note[]>;
+  insert(note: Note): Promise<void>;
+  update(id: string, patch: NotePatch, updatedAt: string): Promise<void>;
+  setDeleted(id: string, deleted: boolean, updatedAt: string): Promise<void>;
+  /** Suppression définitive : contenu effacé, pierre tombale is_deleted = 2. */
+  purge(id: string, updatedAt: string): Promise<void>;
+  upsert(note: Note): Promise<void>;
 }
 
 export interface CalendarSourceRepository {
@@ -132,6 +146,10 @@ export interface RemoteStore {
    */
   pullTasks(cursor?: string): Promise<RemotePage<Task>>;
   pullEvents(cursor?: string): Promise<RemotePage<CalendarEvent>>;
+  /** false : le serveur n'a pas encore la table des notes (rien n'a été envoyé, on réessaiera). */
+  pushNotes(notes: Note[]): Promise<boolean>;
+  /** null : table des notes absente du serveur. */
+  pullNotes(cursor?: string): Promise<RemotePage<Note> | null>;
 }
 
 export interface RemotePage<T> {
@@ -200,7 +218,7 @@ export interface Notifier {
 }
 
 /** Données susceptibles d'être modifiées par une autre fenêtre (grand agenda ↔ mini). */
-export type ChangeChannel = 'tasks' | 'events' | 'settings' | 'mini' | 'auth' | 'focus';
+export type ChangeChannel = 'tasks' | 'events' | 'notes' | 'settings' | 'mini' | 'auth' | 'focus';
 
 /** Bus de notification entre fenêtres : "j'ai modifié X, relis-le". */
 export interface ChangeBus {
@@ -212,6 +230,7 @@ export interface ChangeBus {
 export interface Repositories {
   tasks: TaskRepository;
   events: EventRepository;
+  notes: NoteRepository;
   sources: CalendarSourceRepository;
   settings: SettingsRepository;
 }

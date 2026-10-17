@@ -2,7 +2,9 @@ import type { CalendarEvent } from '../../domain/event/event';
 import { OPEN_HINT, openGesture } from '../../shared/device';
 import type { Task } from '../../domain/task/task';
 import { formatDayLabel, formatDuration, formatTime } from '../../domain/shared/date';
-import { allDayCount, allDayLastKey, isAllDay } from '../../domain/event/eventRules';
+import { allDayCount, isAllDay, isRecurring, occurrenceCovering } from '../../domain/event/eventRules';
+import { recurrenceLabel } from '../../shared/presentation/eventPresentation';
+import { dayKey as toDayKey } from '../../domain/shared/date';
 import { dayKeyFromIso } from '../../domain/shared/date';
 import { CalendarIcon, EditIcon, MapPinIcon, PlusIcon, TrashIcon } from '../../shared/icons/Icons';
 import { Button, EmptyState, IconButton, SectionTitle, StatusCheck } from '../../shared/ui';
@@ -54,8 +56,8 @@ export function DaySidePanel(p: DaySidePanelProps) {
                     style={{ position: 'relative', padding: '8px 10px', borderRadius: 8, background: 'var(--surface-el)', border: '1px solid var(--border)', borderLeft: `3px solid ${color}`, cursor: 'default' }}>
                     <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500, paddingRight: 48 }}>{ev.title}</div>
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 2 }}>
-                      {isAllDay(ev) ? allDayLabel(ev) : `${formatTime(ev.start_at)} · ${formatDuration(ev.duration_min)}`}
-                      {ev.is_annual ? ' · Annuel' : ''}
+                      {isAllDay(ev) ? allDayLabel(ev, p.dayKey) : `${formatTime(ev.start_at)} · ${formatDuration(ev.duration_min)}`}
+                      {isRecurring(ev) ? ` · ${recurrenceLabel(ev)}` : ''}
                     </div>
                     {ev.location && (
                       <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -125,8 +127,12 @@ export function DaySidePanel(p: DaySidePanelProps) {
 }
 
 /** « Journée entière » ou « Du 27 mars au 31 mars · 5 jours ». */
-function allDayLabel(ev: CalendarEvent): string {
+function allDayLabel(ev: CalendarEvent, key: string): string {
   const n = allDayCount(ev);
   if (n <= 1) return 'Journée entière';
-  return `Du ${formatDayLabel(dayKeyFromIso(ev.start_at))} au ${formatDayLabel(allDayLastKey(ev))} · ${n} jours`;
+  // Évènement répété : dates de l'occurrence affichée ce jour-là.
+  const occ = occurrenceCovering(ev, key);
+  const first = occ ? toDayKey(occ.start) : dayKeyFromIso(ev.start_at);
+  const last = occ ? toDayKey(new Date(occ.end.getTime() - 1)) : first;
+  return `Du ${formatDayLabel(first)} au ${formatDayLabel(last)} · ${n} jours`;
 }

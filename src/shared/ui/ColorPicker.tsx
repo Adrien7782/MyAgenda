@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { CheckIcon } from '../icons/Icons';
+import { contrastOn } from '../../domain/event/eventColors';
 
 /**
  * Pastille de couleur qui ouvre une petite palette (popover).
@@ -44,7 +45,7 @@ export function ColorPicker({ value, onChange, palette, defaultColor, defaultLab
 
       {open && (
         <div role="dialog" aria-label="Palette de couleurs" className="fade-in" style={{
-          position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 20, width: 236,
+          position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 20, width: 236, maxWidth: 'calc(100vw - 32px)',
           padding: 12, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)',
           boxShadow: '0 12px 40px rgba(0,0,0,.5)',
         }}>
@@ -68,7 +69,7 @@ export function ColorPicker({ value, onChange, palette, defaultColor, defaultLab
                   onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.12)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; }}
                 >
-                  {selected && <CheckIcon size={14} color="#1a1f2e" strokeWidth={3} />}
+                  {selected && <CheckIcon size={14} color={contrastOn(c.hex)} strokeWidth={3} />}
                 </button>
               );
             })}

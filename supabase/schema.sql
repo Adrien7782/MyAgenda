@@ -54,7 +54,26 @@ alter table public.tasks  add column if not exists reminder_at         text;
 alter table public.events add column if not exists reminder_offset_min integer;
 alter table public.events add column if not exists reminder_at         text;
 
+-- v1.1 : évènements répétés
+alter table public.events add column if not exists recurrence       text;
+alter table public.events add column if not exists recurrence_until text;
+
+-- ── Notes (v1.1) ─────────────────────────────────────────────────────────────
+create table if not exists public.notes (
+  id          text primary key,
+  user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  title       text not null default '',
+  content     text not null default '',   -- HTML simple de l'éditeur
+  color       text,
+  is_pinned   smallint not null default 0,
+  is_deleted  smallint not null default 0, -- 0 active · 1 corbeille · 2 supprimée (pierre tombale)
+  created_at  text not null,
+  updated_at  text not null,
+  synced_at   timestamptz not null default now()
+);
+
 create index if not exists tasks_user_synced_idx  on public.tasks  (user_id, synced_at);
+create index if not exists notes_user_synced_idx  on public.notes  (user_id, synced_at);
 create index if not exists events_user_synced_idx on public.events (user_id, synced_at);
 
 -- ── Horodatage serveur + propriétaire forcé à chaque écriture ────────────────
@@ -74,9 +93,14 @@ drop trigger if exists events_before_write on public.events;
 create trigger events_before_write before insert or update on public.events
   for each row execute function public.my_agenda_before_write();
 
+drop trigger if exists notes_before_write on public.notes;
+create trigger notes_before_write before insert or update on public.notes
+  for each row execute function public.my_agenda_before_write();
+
 -- ── Sécurité : chacun ne voit que ses lignes ─────────────────────────────────
 alter table public.tasks  enable row level security;
 alter table public.events enable row level security;
+alter table public.notes  enable row level security;
 
 drop policy if exists "tasks: propriétaire" on public.tasks;
 create policy "tasks: propriétaire" on public.tasks
@@ -86,6 +110,12 @@ create policy "tasks: propriétaire" on public.tasks
 
 drop policy if exists "events: propriétaire" on public.events;
 create policy "events: propriétaire" on public.events
+  for all to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+
+drop policy if exists "notes: propriétaire" on public.notes;
+create policy "notes: propriétaire" on public.notes
   for all to authenticated
   using (user_id = (select auth.uid()))
   with check (user_id = (select auth.uid()));
