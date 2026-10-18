@@ -155,8 +155,9 @@ dans `src-tauri/icons/`. Le logo affiché dans l'application est `widgets/layout
   testé dans `domain/voice/__tests__`.
 - **Service** (`services/voiceController.ts`) : relie moteur, analyseur, 2e passe et création ; `store/voiceStore.ts`
   crée réellement notes / tâches / évènements ; `widgets/voice/VoicePanel.tsx` = bouton micro + panneau.
-- **Compilation** : Whisper est du C++ compilé par CMake. Il faut **CMake** sur la machine
-  (Windows : `winget install Kitware.CMake` ; Mac : `brew install cmake`). Les options sont dans
+- **Compilation** : Whisper est du C++ compilé par CMake, et ses liaisons Rust sont générées par clang. Il faut
+  **CMake et LLVM** sur la machine (Windows : `winget install Kitware.CMake` et `winget install LLVM.LLVM` ;
+  Mac : `brew install cmake`, clang est fourni par Xcode). Les options sont dans
   `src-tauri/.cargo/config.toml` (pas d'optimisation propre au processeur de la machine qui compile).
 - Essai sans micro : `npm run dev`, puis dans la console du navigateur `localStorage.setItem('voice-demo', '1')` et recharger.
 

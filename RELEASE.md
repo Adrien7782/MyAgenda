@@ -200,8 +200,13 @@ comme l'impose iOS). Il manque la partie Apple, qui demande un **compte Apple De
 
 ## Dépannage
 
-- **`npm run tauri dev` échoue avec « is `cmake` not installed? »** → la commande vocale compile Whisper avec CMake :
-  Windows `winget install Kitware.CMake` (puis rouvrir le terminal), Mac `brew install cmake`.
+- **`npm run tauri dev` : la commande vocale compile Whisper (C++) et a besoin de deux outils**, à installer une fois
+  (puis rouvrir le terminal) :
+  - Windows : `winget install Kitware.CMake` et `winget install LLVM.LLVM`
+  - Mac : `brew install cmake` (clang est déjà fourni par les outils Xcode)
+  Erreurs typiques sans eux : « is `cmake` not installed? », « Unable to find libclang », ou
+  « attempt to compute `12_usize - 16_usize` » dans `bindings.rs`. Après installation :
+  `cd src-tauri`, `cargo clean -p whisper-rs-sys`, `cd ..`, puis `npm run tauri dev`.
 - **Tester avant de publier** : chaque envoi sur une branche (autre que main) construit une app de test Windows + Mac,
   à télécharger dans Actions → « Ordinateur (test) » → Artifacts.
 
