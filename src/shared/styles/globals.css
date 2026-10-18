@@ -123,6 +123,32 @@
   --bg-dot-size: 24px 24px;
 }
 
+/* ── Bleu & blanc : le thème N&B, avec le bleu du thème Bleu Neon à la place du noir ── */
+:root[data-theme="bleublanc"] {
+  color-scheme: light;
+  --bg:          #ffffff;
+  --surface:     #f7f7f7;
+  --surface-el:  #ededed;
+  --border:      #e0e0e0;
+  --accent:      #3b6eff;
+  --accent-bg:   rgba(59, 110, 255, 0.08);
+  --btn-shadow:  0 2px 10px rgba(59, 110, 255, 0.28);
+  --success:     #16a34a;
+  --success-bg:  rgba(22, 163, 74, 0.1);
+  --warn:        #d97706;
+  --warn-bg:     rgba(217, 119, 6, 0.1);
+  --danger:      #dc2626;
+  --danger-bg:   rgba(220, 38, 38, 0.1);
+  /* Texte : bleu nuit (le bleu vif est trop clair pour être lu confortablement sur du blanc) */
+  --text:        #0b1f4d;
+  --text-muted:  #7c89a8;
+  --sidebar:     #f4f4f4;
+  --chrome:      #ebebeb;
+  --font:        system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --bg-dot:      none;
+  --bg-dot-size: 24px 24px;
+}
+
 /* ── Sombre ── */
 :root[data-theme="sombre"] {
   --on-accent: #0d0d0d;

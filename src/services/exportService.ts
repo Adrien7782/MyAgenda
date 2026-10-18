@@ -1,6 +1,7 @@
 import type { CalendarEvent } from '../domain/event/event';
 import type { Task } from '../domain/task/task';
-import { eventEnd, eventRecurrence } from '../domain/event/eventRules';
+import { eventEnd, eventRecurrence, recurrenceInterval } from '../domain/event/eventRules';
+import { normalizeInterval } from '../domain/shared/recurrence';
 import { parseTags } from '../domain/task/taskRules';
 
 const csvCell = (v: string) => `"${v.replace(/"/g, '""')}"`;
@@ -18,7 +19,9 @@ export function tasksToCsv(tasks: Task[]): string {
       t.priority ?? '',
       csvCell(parseTags(t.tags).join('; ')),
       t.deadline ?? '',
-      t.recurrence ?? '',
+      t.recurrence && t.recurrence !== 'none' && normalizeInterval(t.recurrence_interval) > 1
+        ? `${t.recurrence}/${normalizeInterval(t.recurrence_interval)}`
+        : t.recurrence ?? '',
       csvCell(t.comment ?? ''),
       t.created_at,
     ]);
@@ -33,7 +36,8 @@ function rrule(ev: CalendarEvent): string[] {
   const freq = { daily: 'DAILY', weekly: 'WEEKLY', monthly: 'MONTHLY', yearly: 'YEARLY' }[rec];
   // UNTIL inclut tout le dernier jour.
   const until = ev.recurrence_until ? `;UNTIL=${ev.recurrence_until.replace(/-/g, '')}T235959Z` : '';
-  return [`RRULE:FREQ=${freq}${until}`];
+  const n = recurrenceInterval(ev);
+  return [`RRULE:FREQ=${freq}${n > 1 ? `;INTERVAL=${n}` : ''}${until}`];
 }
 
 export function agendaToIcs(tasks: Task[], events: CalendarEvent[]): string {

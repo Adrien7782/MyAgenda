@@ -2,10 +2,10 @@ import type { Attachment, SubTask, Task, TaskPatch } from '../../domain/task/tas
 import type { TaskRepository } from '../../services/ports';
 import { getDb, nullsToUndefined } from './database';
 
-const PATCHABLE = ['title', 'comment', 'deadline', 'status', 'priority', 'tags', 'recurrence', 'event_id', 'reminder_offset_min', 'reminder_at'] as const;
-const TASK_COLUMNS = 'id, title, comment, deadline, status, priority, tags, recurrence, event_id, reminder_offset_min, reminder_at, is_deleted, created_at, updated_at';
+const PATCHABLE = ['title', 'comment', 'deadline', 'status', 'priority', 'tags', 'recurrence', 'recurrence_interval', 'event_id', 'reminder_offset_min', 'reminder_at'] as const;
+const TASK_COLUMNS = 'id, title, comment, deadline, status, priority, tags, recurrence, recurrence_interval, event_id, reminder_offset_min, reminder_at, is_deleted, created_at, updated_at';
 const taskValues = (t: Task) => [t.id, t.title, t.comment ?? null, t.deadline ?? null, t.status, t.priority ?? null, t.tags ?? null,
-  t.recurrence ?? 'none', t.event_id ?? null, t.reminder_offset_min ?? null, t.reminder_at ?? null, t.is_deleted, t.created_at, t.updated_at];
+  t.recurrence ?? 'none', t.recurrence_interval ?? 1, t.event_id ?? null, t.reminder_offset_min ?? null, t.reminder_at ?? null, t.is_deleted, t.created_at, t.updated_at];
 
 export class SqliteTaskRepository implements TaskRepository {
   async listAll(): Promise<Task[]> {
@@ -31,7 +31,7 @@ export class SqliteTaskRepository implements TaskRepository {
   async insert(t: Task): Promise<void> {
     const db = await getDb();
     await db.execute(
-      `INSERT INTO tasks (${TASK_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO tasks (${TASK_COLUMNS}) VALUES (${TASK_COLUMNS.split(',').map(() => '?').join(', ')})`,
       taskValues(t),
     );
   }
@@ -61,7 +61,7 @@ export class SqliteTaskRepository implements TaskRepository {
   async upsert(t: Task): Promise<void> {
     const db = await getDb();
     await db.execute(
-      `INSERT OR REPLACE INTO tasks (${TASK_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT OR REPLACE INTO tasks (${TASK_COLUMNS}) VALUES (${TASK_COLUMNS.split(',').map(() => '?').join(', ')})`,
       taskValues(t),
     );
     if (t.subtasks) {

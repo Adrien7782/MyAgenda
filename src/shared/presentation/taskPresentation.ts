@@ -1,5 +1,6 @@
 /** Libellés et couleurs d'affichage des tâches (séparés du domaine : c'est de la présentation). */
-import type { Priority, Recurrence, TaskStatus } from '../../domain/task/task';
+import type { Priority, Task, TaskStatus } from '../../domain/task/task';
+import { recurrenceText } from '../../domain/shared/recurrence';
 import type { Option } from '../ui/OptionGroup';
 
 export const STATUS_LABEL: Record<TaskStatus, string> = {
@@ -39,12 +40,10 @@ export const PRIORITY_OPTIONS: Option<Priority | 'none'>[] = [
   ...(['high', 'medium', 'low'] as Priority[]).map((p) => ({ value: p, label: PRIORITY_LABEL[p], color: PRIORITY_COLOR[p] })),
 ];
 
-export const RECURRENCE_OPTIONS: Option<Recurrence>[] = [
-  { value: 'none', label: 'Aucune' },
-  { value: 'daily', label: 'Quotidien' },
-  { value: 'weekly', label: 'Hebdo' },
-  { value: 'monthly', label: 'Mensuel' },
-];
+/** « Chaque semaine », « Tous les 2 jours »… ou '' pour une tâche qui ne se répète pas. */
+export function taskRecurrenceLabel(task: Pick<Task, 'recurrence' | 'recurrence_interval'>): string {
+  return task.recurrence && task.recurrence !== 'none' ? recurrenceText(task.recurrence, task.recurrence_interval) : '';
+}
 
 export function formatRelativeDeadline(iso: string, now = new Date()): string {
   const d = new Date(iso);

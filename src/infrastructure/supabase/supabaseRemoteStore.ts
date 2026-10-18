@@ -10,6 +10,8 @@ interface RemoteTaskRow {
   priority: string | null; tags: string | null; recurrence: string | null; event_id: string | null;
   is_deleted: number; created_at: string; updated_at: string; subtasks_json: string | null;
   reminder_offset_min: number | null; reminder_at: string | null;
+  /** Ajoutée en 1.1 (relancer supabase/schema.sql) : absente des anciennes bases serveur. */
+  recurrence_interval?: number | null;
   synced_at?: string;
 }
 
@@ -18,7 +20,7 @@ interface RemoteEventRow {
   participants: string | null; location: string | null; is_annual: number; is_deleted: number;
   reminder_offset_min: number | null; reminder_at: string | null;
   /** Ajoutées en 1.1 (relancer supabase/schema.sql) : absentes des anciennes bases serveur. */
-  recurrence?: string | null; recurrence_until?: string | null;
+  recurrence?: string | null; recurrence_until?: string | null; recurrence_interval?: number | null;
   created_at: string; updated_at: string;
   synced_at?: string;
 }
@@ -47,6 +49,7 @@ const rowToTask = (r: RemoteTaskRow): Task => ({
   event_id: r.event_id ?? undefined, is_deleted: r.is_deleted, created_at: r.created_at,
   updated_at: r.updated_at, subtasks: parseSubtasks(r.subtasks_json),
   reminder_offset_min: r.reminder_offset_min ?? null, reminder_at: r.reminder_at ?? null,
+  recurrence_interval: r.recurrence_interval ?? null,
 });
 
 const taskToRow = (t: Task): RemoteTaskRow => ({
@@ -55,6 +58,7 @@ const taskToRow = (t: Task): RemoteTaskRow => ({
   event_id: t.event_id ?? null, is_deleted: t.is_deleted, created_at: t.created_at,
   updated_at: t.updated_at, subtasks_json: JSON.stringify(t.subtasks ?? []),
   reminder_offset_min: t.reminder_offset_min ?? null, reminder_at: t.reminder_at ?? null,
+  recurrence_interval: t.recurrence_interval ?? 1,
 });
 
 const rowToEvent = (r: RemoteEventRow): CalendarEvent => ({
@@ -63,6 +67,7 @@ const rowToEvent = (r: RemoteEventRow): CalendarEvent => ({
   is_annual: r.is_annual, is_deleted: r.is_deleted, created_at: r.created_at, updated_at: r.updated_at,
   reminder_offset_min: r.reminder_offset_min ?? null, reminder_at: r.reminder_at ?? null,
   recurrence: (r.recurrence ?? null) as CalendarEvent['recurrence'], recurrence_until: r.recurrence_until ?? null,
+  recurrence_interval: r.recurrence_interval ?? null,
 });
 
 const eventToRow = (e: CalendarEvent): RemoteEventRow => ({
@@ -71,6 +76,7 @@ const eventToRow = (e: CalendarEvent): RemoteEventRow => ({
   is_deleted: e.is_deleted ?? 0, created_at: e.created_at, updated_at: e.updated_at,
   reminder_offset_min: e.reminder_offset_min ?? null, reminder_at: e.reminder_at ?? null,
   recurrence: e.recurrence ?? null, recurrence_until: e.recurrence_until ?? null,
+  recurrence_interval: e.recurrence_interval ?? 1,
 });
 
 interface RemoteNoteRow {
@@ -89,9 +95,25 @@ const rowToNote = (r: RemoteNoteRow): Note => ({
   is_deleted: r.is_deleted ?? 0, created_at: r.created_at, updated_at: r.updated_at,
 });
 
-function withoutRecurrence(r: RemoteEventRow): RemoteEventRow {
-  const { recurrence: _r, recurrence_until: _u, ...rest } = r;
-  return rest;
+/** Colonnes ajoutées après la 1.0 : envoyées seulement si le serveur les connaît. */
+const OPTIONAL_COLUMNS: Record<'tasks' | 'events', string[]> = {
+  tasks: ['recurrence_interval'],
+  events: ['recurrence', 'recurrence_until', 'recurrence_interval'],
+};
+
+function withoutColumns<R extends object>(row: R, columns: Set<string>): R {
+  if (!columns.size) return row;
+  const out = { ...row } as Record<string, unknown>;
+  for (const c of columns) delete out[c];
+  return out as R;
+}
+
+/** Colonnes optionnelles qu'un message d'erreur « colonne inconnue » désigne. */
+function missingColumns(table: 'tasks' | 'events', message: string): string[] {
+  if (!isMissingSchema(message)) return [];
+  const named = OPTIONAL_COLUMNS[table].filter((c) => new RegExp(`['"]${c}['"]`).test(message));
+  if (named.length) return named;
+  return /recurrence/i.test(message) ? OPTIONAL_COLUMNS[table] : [];
 }
 
 /**
@@ -106,27 +128,29 @@ export class SupabaseRemoteStore implements RemoteStore {
   }
 
   async pushTasks(tasks: Task[]): Promise<void> {
-    for (let i = 0; i < tasks.length; i += 500) {
-      const { error } = await getSupabase().from('tasks').upsert(tasks.slice(i, i + 500).map(taskToRow), { onConflict: 'id' });
-      if (error) throw new Error(`Envoi des tâches : ${schemaHint(error.message)}`);
-    }
+    await this.upsertTolerant('tasks', tasks.map(taskToRow), 'Envoi des tâches');
   }
 
-  /** Base serveur pas encore mise à jour (colonnes de répétition absentes) : on envoie sans elles. */
-  private eventsWithoutRecurrence = false;
-
   async pushEvents(events: CalendarEvent[]): Promise<void> {
-    for (let i = 0; i < events.length; i += 500) {
-      const rows = events.slice(i, i + 500).map(eventToRow);
-      const send = (r: RemoteEventRow[]) => getSupabase().from('events').upsert(r, { onConflict: 'id' });
-      let { error } = this.eventsWithoutRecurrence ? await send(rows.map(withoutRecurrence)) : await send(rows);
-      if (error && !this.eventsWithoutRecurrence && /recurrence/i.test(error.message) && isMissingSchema(error.message)) {
-        // La synchronisation continue ; seules les répétitions ne passent pas tant que schema.sql n'est pas relancé.
-        console.warn('[Sync] Colonnes de répétition absentes du serveur : relance supabase/schema.sql.');
-        this.eventsWithoutRecurrence = true;
-        ({ error } = await send(rows.map(withoutRecurrence)));
+    await this.upsertTolerant('events', events.map(eventToRow), 'Envoi des évènements');
+  }
+
+  /** Base serveur pas encore mise à jour (schema.sql pas relancé) : colonnes récentes à ne pas envoyer. */
+  private skipped: Record<'tasks' | 'events', Set<string>> = { tasks: new Set(), events: new Set() };
+
+  private async upsertTolerant<R extends object>(table: 'tasks' | 'events', rows: R[], label: string): Promise<void> {
+    for (let i = 0; i < rows.length; i += 500) {
+      const chunk = rows.slice(i, i + 500);
+      for (;;) {
+        const skip = this.skipped[table];
+        const { error } = await getSupabase().from(table).upsert(chunk.map((r) => withoutColumns(r, skip)), { onConflict: 'id' });
+        if (!error) break;
+        const missing = missingColumns(table, error.message).filter((c) => !skip.has(c));
+        if (!missing.length) throw new Error(`${label} : ${schemaHint(error.message)}`);
+        // La synchronisation continue ; seules ces informations (répétitions) ne passent pas tant que schema.sql n'est pas relancé.
+        console.warn(`[Sync] Colonnes absentes du serveur (${table} : ${missing.join(', ')}) : relance supabase/schema.sql.`);
+        for (const c of missing) skip.add(c);
       }
-      if (error) throw new Error(`Envoi des évènements : ${schemaHint(error.message)}`);
     }
   }
 

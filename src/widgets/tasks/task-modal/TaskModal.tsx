@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { Task } from '../../../domain/task/task';
 import { TrashIcon } from '../../../shared/icons/Icons';
 import { Button, Field, FieldRow, Modal, OptionGroup, TextArea, TextInput } from '../../../shared/ui';
-import { PRIORITY_OPTIONS, RECURRENCE_OPTIONS, STATUS_OPTIONS } from '../../../shared/presentation/taskPresentation';
+import { PRIORITY_OPTIONS, STATUS_OPTIONS } from '../../../shared/presentation/taskPresentation';
+import { RecurrenceField } from '../../recurrence/RecurrenceField';
 import { useTaskStore } from '../../../store/taskStore';
 import { useUiStore } from '../../../store/uiStore';
 import { useTaskForm } from './useTaskForm';
@@ -117,14 +118,17 @@ function TaskModalContent({ task, prefillDeadline, onClose }: {
           <OptionGroup options={PRIORITY_OPTIONS} value={fields.priority} onChange={set.setPriority} />
         </Field>
       </FieldRow>
-      <FieldRow>
-        <Field label="Labels">
-          <TextInput value={fields.tags} onChange={(e) => set.setTags(e.target.value)} placeholder="cours, urgent… (virgules)" />
-        </Field>
-        <Field label="Récurrence">
-          <OptionGroup options={RECURRENCE_OPTIONS} value={fields.recurrence} onChange={set.setRecurrence} />
-        </Field>
-      </FieldRow>
+      <Field label="Labels">
+        <TextInput value={fields.tags} onChange={(e) => set.setTags(e.target.value)} placeholder="cours, urgent… (virgules)" />
+      </Field>
+      <RecurrenceField
+        label="Récurrence"
+        units={['daily', 'weekly', 'monthly']}
+        value={fields.recurrence}
+        interval={fields.recurrenceInterval}
+        onChange={set.setRecurrence}
+        hint={fields.recurrence !== 'none' && !fields.deadline ? 'Sans échéance, la tâche ne se répète pas.' : undefined}
+      />
       <Field label="Sous-tâches">
         <SubtaskEditor value={form.subtasks} onChange={form.setSubtasks} />
       </Field>

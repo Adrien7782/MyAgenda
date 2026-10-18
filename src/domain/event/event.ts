@@ -13,6 +13,8 @@ export interface CalendarEvent {
   is_annual: number;
   /** Répétition (absente sur les évènements créés avant la 1.1 : voir is_annual). */
   recurrence?: EventRecurrence | null;
+  /** « Tous les N … » (absent ou 1 = chaque jour / semaine / mois / année). */
+  recurrence_interval?: number | null;
   /** Dernier jour (inclus, « AAAA-MM-JJ ») où l'évènement se répète ; null = sans fin. */
   recurrence_until?: string | null;
   /** Renseigné quand l'évènement provient d'un calendrier importé (.ics). */
@@ -37,6 +39,7 @@ export interface EventDraft {
   location?: string;
   is_annual: number;
   recurrence?: EventRecurrence;
+  recurrence_interval?: number | null;
   recurrence_until?: string | null;
   reminder_offset_min?: number | null;
   reminder_at?: string | null;

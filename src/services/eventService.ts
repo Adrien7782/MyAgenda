@@ -1,5 +1,6 @@
 import type { CalendarEvent, EventDraft } from '../domain/event/event';
 import { eventRecurrence } from '../domain/event/eventRules';
+import { normalizeInterval } from '../domain/shared/recurrence';
 import { nowIso } from '../domain/shared/date';
 import { newId } from '../domain/shared/id';
 import type { EventRepository } from './ports';
@@ -13,7 +14,9 @@ function normalize(draft: EventDraft): EventDraft {
   return {
     ...draft,
     recurrence,
-    is_annual: recurrence === 'yearly' ? 1 : 0,
+    // « Annuel » pour les anciennes versions : seulement si c'est bien chaque année.
+    is_annual: recurrence === 'yearly' && normalizeInterval(draft.recurrence_interval) === 1 ? 1 : 0,
+    recurrence_interval: recurrence === 'none' ? 1 : normalizeInterval(draft.recurrence_interval),
     recurrence_until: recurrence === 'none' ? null : draft.recurrence_until ?? null,
   };
 }

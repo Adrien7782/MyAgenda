@@ -1,10 +1,11 @@
 import type { Task } from '../../domain/task/task';
 import { openGesture } from '../../shared/device';
 import { isOverdue, parseTags } from '../../domain/task/taskRules';
+import { normalizeInterval } from '../../domain/shared/recurrence';
 import { AlertTriangleIcon, EditIcon, RepeatIcon, TrashIcon } from '../../shared/icons/Icons';
 import { Badge, IconButton, StatusCheck } from '../../shared/ui';
 import {
-  formatRelativeDeadline, PRIORITY_COLOR, PRIORITY_LABEL, STATUS_COLOR, STATUS_LABEL,
+  formatRelativeDeadline, PRIORITY_COLOR, PRIORITY_LABEL, STATUS_COLOR, STATUS_LABEL, taskRecurrenceLabel,
 } from '../../shared/presentation/taskPresentation';
 
 export interface TaskCardActions {
@@ -93,7 +94,12 @@ export function TaskCard({ task, dragHandleProps, isDragging, compact, onToggleD
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: compact ? 'normal' : 'nowrap',
             overflowWrap: compact ? 'anywhere' : undefined,
           }}>{task.title}</span>
-          {task.recurrence && task.recurrence !== 'none' && <RepeatIcon size={11} color="var(--text-muted)" />}
+          {task.recurrence && task.recurrence !== 'none' && (
+            <span title={taskRecurrenceLabel(task)} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0, fontSize: 10, color: 'var(--text-muted)' }}>
+              <RepeatIcon size={11} color="var(--text-muted)" />
+              {normalizeInterval(task.recurrence_interval) > 1 && `${normalizeInterval(task.recurrence_interval)} ${{ daily: 'j', weekly: 'sem.', monthly: 'mois' }[task.recurrence]}`}
+            </span>
+          )}
         </div>
         {task.comment && (
           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

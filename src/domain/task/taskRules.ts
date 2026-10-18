@@ -1,6 +1,7 @@
 import { DAY_MS, MINUTE_MS } from '../shared/date';
 import type { Recurrence, Task, TaskDraft, TaskPatch, TaskStatus } from './task';
 import type { CalendarEvent } from '../event/event';
+import { normalizeInterval } from '../shared/recurrence';
 import { nextOccurrenceStart } from '../event/eventRules';
 
 /** Ordre du cycle quand on clique sur la pastille de statut. */
@@ -24,11 +25,13 @@ export function overdueDays(task: Task, now = Date.now()): number {
   return Math.max(1, Math.ceil((now - new Date(task.deadline).getTime()) / DAY_MS));
 }
 
-export function nextDeadline(iso: string, recurrence: Recurrence): string {
+/** Échéance suivante : + N jours / semaines / mois (N = intervalle, 1 par défaut). */
+export function nextDeadline(iso: string, recurrence: Recurrence, interval?: number | null): string {
+  const n = normalizeInterval(interval);
   const d = new Date(iso);
-  if (recurrence === 'daily') d.setDate(d.getDate() + 1);
-  if (recurrence === 'weekly') d.setDate(d.getDate() + 7);
-  if (recurrence === 'monthly') d.setMonth(d.getMonth() + 1);
+  if (recurrence === 'daily') d.setDate(d.getDate() + n);
+  if (recurrence === 'weekly') d.setDate(d.getDate() + 7 * n);
+  if (recurrence === 'monthly') d.setMonth(d.getMonth() + n);
   return d.toISOString();
 }
 
@@ -83,6 +86,7 @@ export function draftToPatch(draft: TaskDraft): TaskPatch {
     priority: draft.priority,
     tags: serializeTags(draft.tags),
     recurrence: draft.recurrence,
+    recurrence_interval: draft.recurrence === 'none' ? 1 : normalizeInterval(draft.recurrence_interval),
     event_id: draft.event_id,
     reminder_offset_min: draft.reminder_offset_min ?? null,
     reminder_at: draft.reminder_at ?? null,

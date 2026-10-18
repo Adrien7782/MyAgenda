@@ -26,6 +26,8 @@ export interface Task {
   /** Tableau JSON sérialisé : '["tag1","tag2"]' */
   tags?: string;
   recurrence?: Recurrence;
+  /** « Tous les N … » (absent ou 1 = à chaque jour / semaine / mois). */
+  recurrence_interval?: number | null;
   event_id?: string;
   /** Rappel : minutes avant l'échéance… */
   reminder_offset_min?: number | null;
@@ -50,7 +52,7 @@ export interface Attachment {
 
 /** Champs modifiables d'une tâche (hors cycle de vie). */
 export type TaskPatch = Partial<
-  Pick<Task, 'title' | 'comment' | 'deadline' | 'status' | 'priority' | 'tags' | 'recurrence' | 'event_id' | 'reminder_offset_min' | 'reminder_at'>
+  Pick<Task, 'title' | 'comment' | 'deadline' | 'status' | 'priority' | 'tags' | 'recurrence' | 'recurrence_interval' | 'event_id' | 'reminder_offset_min' | 'reminder_at'>
 >;
 
 /** Données saisies dans le formulaire de tâche. */
@@ -62,6 +64,8 @@ export interface TaskDraft {
   priority?: Priority;
   tags: string[];
   recurrence: Recurrence;
+  /** « Tous les N … » (1 par défaut). */
+  recurrence_interval?: number;
   event_id?: string;
   reminder_offset_min?: number | null;
   reminder_at?: string | null;

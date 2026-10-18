@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CalendarEvent, EventDraft, EventRecurrence } from '../../domain/event/event';
-import { allDayLastKey, allDaySpan, daysBetween, eventRecurrence, isAllDay } from '../../domain/event/eventRules';
-import { EVENT_RECURRENCE_OPTIONS } from '../../shared/presentation/eventPresentation';
+import { allDayLastKey, allDaySpan, daysBetween, eventRecurrence, isAllDay, recurrenceInterval } from '../../domain/event/eventRules';
+import { RecurrenceField } from '../recurrence/RecurrenceField';
 import { colorForTitle, eventColorKey, PASTEL_PALETTE } from '../../domain/event/eventColors';
 import { dayKeyFromIso, fromLocalInputValue, toLocalInputValue } from '../../domain/shared/date';
 import { TrashIcon } from '../../shared/icons/Icons';
-import { Button, ColorPicker, Field, FieldRow, Modal, OptionGroup, TextArea, TextInput, Toggle } from '../../shared/ui';
+import { Button, ColorPicker, Field, FieldRow, Modal, TextArea, TextInput, Toggle } from '../../shared/ui';
 import { readReminder, writeReminder, type ReminderSetting } from '../../domain/reminder/reminder';
 import { nextOccurrenceStart } from '../../domain/event/eventRules';
 import { ReminderField } from '../reminders/ReminderField';
@@ -50,6 +50,7 @@ function EventModalContent({ event, defaultStart, onClose }: { event: CalendarEv
   const [participants, setParticipants] = useState(event?.participants ?? '');
   const [comment, setComment] = useState(event?.comment ?? '');
   const [recurrence, setRecurrence] = useState<EventRecurrence>(event ? eventRecurrence(event) : 'none');
+  const [interval, setRecInterval] = useState(event ? recurrenceInterval(event) : 1);
   const [until, setUntil] = useState(event?.recurrence_until ?? '');
   const [reminder, setReminder] = useState<ReminderSetting>(event ? readReminder(event) : { kind: 'none' });
   const [color, setColor] = useState<string | null>(event ? colorForTitle(titleColors, event.title) ?? null : null);
@@ -96,8 +97,9 @@ function EventModalContent({ event, defaultStart, onClose }: { event: CalendarEv
         location: location.trim() || undefined,
         participants: participants.trim() || undefined,
         comment: comment.trim() || undefined,
-        is_annual: recurrence === 'yearly' ? 1 : 0,
+        is_annual: recurrence === 'yearly' && interval === 1 ? 1 : 0,
         recurrence,
+        recurrence_interval: recurrence === 'none' ? 1 : interval,
         recurrence_until: recurrence !== 'none' && until ? until : null,
         ...writeReminder(reminder),
       };
@@ -190,9 +192,15 @@ function EventModalContent({ event, defaultStart, onClose }: { event: CalendarEv
           </Field>
         </>
       )}
-      <Field label="Répétition" hint={recurrence === 'yearly' ? 'Anniversaire, fête… (même jour chaque année)' : recurrence === 'monthly' ? 'Le même jour chaque mois' : undefined}>
-        <OptionGroup options={EVENT_RECURRENCE_OPTIONS} value={recurrence} onChange={setRecurrence} />
-      </Field>
+      <RecurrenceField
+        units={['daily', 'weekly', 'monthly', 'yearly']}
+        value={recurrence}
+        interval={interval}
+        onChange={(r, n) => { setRecurrence(r); setRecInterval(n); }}
+        hint={recurrence === 'yearly' && interval === 1 ? 'Anniversaire, fête… (même jour chaque année)'
+          : recurrence === 'monthly' ? 'Le même jour du mois'
+          : recurrence === 'yearly' ? 'Le même jour de l’année' : undefined}
+      />
       {recurrence !== 'none' && (
         <Field label="Jusqu'au" hint={!untilValid ? 'La fin doit être après le premier jour.' : until ? 'Dernier jour inclus.' : 'Laisse vide pour répéter sans fin.'}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -211,7 +219,7 @@ function EventModalContent({ event, defaultStart, onClose }: { event: CalendarEv
           const iso = allDay ? new Date(`${fromDay}T00:00`).toISOString() : fromLocalInputValue(startAt);
           if (!iso) return null;
           // Évènement répété : le délai s'applique à la prochaine occurrence.
-          return nextOccurrenceStart({ id: '', title, start_at: iso, duration_min: allDay ? dayCount * 1440 : duration, is_annual: 0, recurrence, recurrence_until: until || null, created_at: '', updated_at: '' });
+          return nextOccurrenceStart({ id: '', title, start_at: iso, duration_min: allDay ? dayCount * 1440 : duration, is_annual: 0, recurrence, recurrence_interval: interval, recurrence_until: until || null, created_at: '', updated_at: '' });
         })()}
         dueLabel="le début"
       />

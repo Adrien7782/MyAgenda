@@ -2,13 +2,13 @@ import type { CalendarEvent, EventPatch } from '../../domain/event/event';
 import type { EventRepository } from '../../services/ports';
 import { getDb, nullsToUndefined } from './database';
 
-const PATCHABLE = ['title', 'start_at', 'duration_min', 'comment', 'participants', 'location', 'is_annual', 'recurrence', 'recurrence_until', 'reminder_offset_min', 'reminder_at'] as const;
-const COLUMNS = 'id, title, start_at, duration_min, comment, participants, location, is_annual, recurrence, recurrence_until, source_id, external_uid, is_deleted, reminder_offset_min, reminder_at, created_at, updated_at';
+const PATCHABLE = ['title', 'start_at', 'duration_min', 'comment', 'participants', 'location', 'is_annual', 'recurrence', 'recurrence_interval', 'recurrence_until', 'reminder_offset_min', 'reminder_at'] as const;
+const COLUMNS = 'id, title, start_at, duration_min, comment, participants, location, is_annual, recurrence, recurrence_interval, recurrence_until, source_id, external_uid, is_deleted, reminder_offset_min, reminder_at, created_at, updated_at';
 const PLACEHOLDERS = COLUMNS.split(',').map(() => '?').join(', ');
 
 function values(e: CalendarEvent) {
   return [e.id, e.title, e.start_at, e.duration_min, e.comment ?? null, e.participants ?? null, e.location ?? null,
-    e.is_annual, e.recurrence ?? null, e.recurrence_until ?? null, e.source_id ?? null, e.external_uid ?? null, e.is_deleted ?? 0, e.reminder_offset_min ?? null, e.reminder_at ?? null,
+    e.is_annual, e.recurrence ?? null, e.recurrence_interval ?? null, e.recurrence_until ?? null, e.source_id ?? null, e.external_uid ?? null, e.is_deleted ?? 0, e.reminder_offset_min ?? null, e.reminder_at ?? null,
     e.created_at, e.updated_at];
 }
 

@@ -54,9 +54,11 @@ alter table public.tasks  add column if not exists reminder_at         text;
 alter table public.events add column if not exists reminder_offset_min integer;
 alter table public.events add column if not exists reminder_at         text;
 
--- v1.1 : évènements répétés
-alter table public.events add column if not exists recurrence       text;
-alter table public.events add column if not exists recurrence_until text;
+-- v1.1 : évènements répétés, et « tous les N jours / semaines / mois / ans »
+alter table public.events add column if not exists recurrence          text;
+alter table public.events add column if not exists recurrence_until    text;
+alter table public.events add column if not exists recurrence_interval integer;
+alter table public.tasks  add column if not exists recurrence_interval integer;
 
 -- ── Notes (v1.1) ─────────────────────────────────────────────────────────────
 create table if not exists public.notes (

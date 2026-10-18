@@ -1,5 +1,6 @@
 import { addDays, dayKey, dayKeyFromIso, minutesOfDay, MINUTE_MS, parseDayKey } from '../shared/date';
 import type { CalendarEvent, EventRecurrence } from './event';
+import { normalizeInterval } from '../shared/recurrence';
 
 export function eventStart(ev: CalendarEvent): Date {
   return new Date(ev.start_at);
@@ -54,6 +55,11 @@ export function eventRecurrence(ev: Pick<CalendarEvent, 'recurrence' | 'is_annua
   return ev.is_annual ? 'yearly' : 'none';
 }
 
+/** « Tous les N … » : 1 pour une répétition simple (ou les évènements créés avant l'intervalle). */
+export function recurrenceInterval(ev: Pick<CalendarEvent, 'recurrence_interval'>): number {
+  return normalizeInterval(ev.recurrence_interval ?? 1);
+}
+
 export function isRecurring(ev: Pick<CalendarEvent, 'recurrence' | 'is_annual'>): boolean {
   return eventRecurrence(ev) !== 'none';
 }
@@ -80,13 +86,15 @@ function startsOn(ev: CalendarEvent, key: string): boolean {
   if (rec === 'none') return key === startKey;
   if (key < startKey) return false;
   if (ev.recurrence_until && key > ev.recurrence_until) return false;
-  const [, sm, sd] = keyParts(startKey);
-  const [, m, d] = keyParts(key);
+  const n = recurrenceInterval(ev);
+  const [sy, sm, sd] = keyParts(startKey);
+  const [y, m, d] = keyParts(key);
   switch (rec) {
-    case 'daily': return true;
-    case 'weekly': return daysBetween(startKey, key) % 7 === 0;
-    case 'monthly': return d === sd; // le 31 : seulement les mois qui en ont un
-    case 'yearly': return d === sd && m === sm;
+    case 'daily': return daysBetween(startKey, key) % n === 0;
+    case 'weekly': return daysBetween(startKey, key) % (7 * n) === 0;
+    // Le 31 : seulement les mois qui en ont un.
+    case 'monthly': return d === sd && ((y - sy) * 12 + (m - sm)) % n === 0;
+    case 'yearly': return d === sd && m === sm && (y - sy) % n === 0;
   }
 }
 
@@ -137,14 +145,18 @@ export function occurrencesBetween(ev: CalendarEvent, from: Date, to: Date, max 
   // On démarre au plus tard au premier jour utile (pas besoin de parcourir des années en arrière).
   let day = parseDayKey(dayKey(from) > startKey ? dayKey(from) : startKey);
   const lastKey = ev.recurrence_until && ev.recurrence_until < dayKey(to) ? ev.recurrence_until : dayKey(to);
-  for (let i = 0; out.length < max && dayKey(day) <= lastKey && i < 800; i++) {
+  const n = recurrenceInterval(ev);
+  // Pas d'avance une fois calé sur une occurrence : N jours (quotidien) ou 7 × N (hebdo) ; sinon jour par jour.
+  const stride = rec === 'daily' ? n : rec === 'weekly' ? 7 * n : 1;
+  const maxSteps = Math.min(20_000, Math.max(800, daysBetween(dayKey(day), lastKey) + 2));
+  for (let i = 0; out.length < max && dayKey(day) <= lastKey && i < maxSteps; i++) {
     const key = dayKey(day);
-    if (startsOn(ev, key)) {
+    const hit = startsOn(ev, key);
+    if (hit) {
       const s = occurrenceStartOn(ev, key);
       if (s >= from && s <= to) out.push(s);
     }
-    // Pas d'avance : 1 jour, ou 7 pour une répétition hebdomadaire une fois calée sur le bon jour.
-    day = addDays(day, rec === 'weekly' && startsOn(ev, key) ? 7 : 1);
+    day = addDays(day, hit ? stride : 1);
   }
   return out;
 }
@@ -157,7 +169,10 @@ export function nextOccurrenceStart(ev: CalendarEvent, now = new Date()): Date {
   if (!isRecurring(ev)) return eventStart(ev);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const rec = eventRecurrence(ev);
-  const horizon = addDays(today, rec === 'yearly' ? 366 * 4 + 1 : rec === 'monthly' ? 400 : 8);
+  const n = recurrenceInterval(ev);
+  // Assez loin pour trouver l'occurrence suivante (29 février, 31 du mois, « tous les 3 ans »…).
+  const days = { daily: n + 1, weekly: 7 * n + 1, monthly: 400 * n, yearly: (366 * 4 + 1) * n }[rec as Exclude<EventRecurrence, 'none'>];
+  const horizon = addDays(today, Math.min(days, 20_000));
   const next = occurrencesBetween(ev, today, horizon, 1)[0];
   // Répétition terminée (date de fin passée) : on garde la dernière date connue.
   return next ?? eventStart(ev);

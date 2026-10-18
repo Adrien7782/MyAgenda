@@ -221,6 +221,12 @@ async function migrate(db: SqlDatabase): Promise<void> {
     await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_updated ON notes(updated_at)');
     await setVersion(6);
   }
+  if (version < 7) {
+    // 1.1 : répétitions « tous les N jours / semaines / mois / ans »
+    await tryExec('ALTER TABLE tasks ADD COLUMN recurrence_interval INTEGER');
+    await tryExec('ALTER TABLE events ADD COLUMN recurrence_interval INTEGER');
+    await setVersion(7);
+  }
 }
 
 /** Les colonnes SQLite NULL deviennent `undefined` côté TypeScript (champs optionnels). */

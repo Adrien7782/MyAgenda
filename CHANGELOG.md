@@ -7,6 +7,8 @@ La section de la version publiée s'affiche dans l'application, dans Réglages �
 
 - **Notes** : une nouvelle page pour garder tes idées et tout ce qu'il faut retenir. Titre, texte mis en forme (titres, gras, italique, souligné, barré, surligné, listes, cases à cocher, citations), enregistrement automatique, recherche, notes épinglées et colorées, téléchargement en .txt (ou partage sur téléphone), corbeille. Synchronisées sur tous tes appareils.
 - **Évènements répétés** : chaque jour, chaque semaine, chaque mois ou chaque année, avec une date de fin si besoin. Un rappel sonne à chaque occurrence.
+- **Répétition personnalisée** (bouton « Perso ») pour les tâches et les évènements : tous les 2 jours, toutes les 3 semaines, tous les 6 mois, tous les 2 ans…
+- **Nouveau thème « Bleu & blanc »** : le thème N&B avec le bleu du thème Bleu Neon.
 - **12 nouvelles couleurs** pour les évènements (plus vives, bien lisibles sur les thèmes clairs).
 
 ## 1.0.2

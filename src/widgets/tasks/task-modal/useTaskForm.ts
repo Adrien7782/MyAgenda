@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Attachment, AttachmentDraft, Priority, Recurrence, SubtaskDraft, Task, TaskDraft, TaskStatus } from '../../../domain/task/task';
 import { parseTags } from '../../../domain/task/taskRules';
+import { normalizeInterval } from '../../../domain/shared/recurrence';
 import { fromLocalInputValue, toLocalInputValue } from '../../../domain/shared/date';
 import { services } from '../../../app/container';
 import { readReminder, writeReminder, type ReminderSetting } from '../../../domain/reminder/reminder';
@@ -14,6 +15,7 @@ export function useTaskForm(task: Task | null, prefillDeadline: string | null) {
   const [priority, setPriority] = useState<Priority | 'none'>('none');
   const [tags, setTags] = useState('');
   const [recurrence, setRecurrence] = useState<Recurrence>('none');
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
   const [eventId, setEventId] = useState('');
   const [reminder, setReminder] = useState<ReminderSetting>({ kind: 'none' });
   const [subtasks, setSubtasks] = useState<SubtaskDraft[]>([]);
@@ -30,6 +32,7 @@ export function useTaskForm(task: Task | null, prefillDeadline: string | null) {
     setPriority(task?.priority ?? 'none');
     setTags(parseTags(task?.tags).join(', '));
     setRecurrence(task?.recurrence ?? 'none');
+    setRecurrenceInterval(normalizeInterval(task?.recurrence_interval));
     setEventId(task?.event_id ?? '');
     setReminder(task ? readReminder(task) : { kind: 'none' });
     setSubtasks((task?.subtasks ?? []).map((s) => ({ id: s.id, title: s.title, is_done: s.is_done })));
@@ -48,6 +51,7 @@ export function useTaskForm(task: Task | null, prefillDeadline: string | null) {
       priority: priority === 'none' ? undefined : priority,
       tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
       recurrence,
+      recurrence_interval: recurrence === 'none' ? 1 : recurrenceInterval,
       event_id: eventId || undefined,
       ...writeReminder(reminder),
       subtasks,
@@ -57,8 +61,11 @@ export function useTaskForm(task: Task | null, prefillDeadline: string | null) {
   }
 
   return {
-    fields: { title, comment, deadline, status, priority, tags, recurrence, eventId, reminder },
-    set: { setTitle, setComment, setDeadline, setStatus, setPriority, setTags, setRecurrence, setEventId, setReminder },
+    fields: { title, comment, deadline, status, priority, tags, recurrence, recurrenceInterval, eventId, reminder },
+    set: {
+      setTitle, setComment, setDeadline, setStatus, setPriority, setTags, setEventId, setReminder,
+      setRecurrence: (r: Recurrence, interval = 1) => { setRecurrence(r); setRecurrenceInterval(normalizeInterval(interval)); },
+    },
     subtasks, setSubtasks,
     attachments: {
       existing: attachments.filter((a) => !removedAttachmentIds.includes(a.id)),

@@ -52,6 +52,7 @@ export function createTaskService(repo: TaskRepository) {
       priority: patch.priority,
       tags: patch.tags,
       recurrence: patch.recurrence ?? 'none',
+      recurrence_interval: patch.recurrence_interval ?? 1,
       event_id: patch.event_id,
       reminder_offset_min: patch.reminder_offset_min ?? null,
       reminder_at: patch.reminder_at ?? null,
@@ -121,11 +122,12 @@ export function createTaskService(repo: TaskRepository) {
     return create({
       title: task.title,
       comment: task.comment,
-      deadline: nextDeadline(task.deadline!, task.recurrence!),
+      deadline: nextDeadline(task.deadline!, task.recurrence!, task.recurrence_interval),
       status: 'todo',
       priority: task.priority,
       tags: parseTags(task.tags),
       recurrence: task.recurrence!,
+      recurrence_interval: task.recurrence_interval ?? 1,
       // Un rappel "X min avant" suit la nouvelle échéance ; une date fixe ne se répète pas.
       reminder_offset_min: task.reminder_offset_min ?? null,
       subtasks: (task.subtasks ?? []).map((s) => ({ title: s.title, is_done: 0 })),
