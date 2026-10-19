@@ -21,12 +21,17 @@ export function MiniApp() {
   }, []);
 
   // macOS : fermeture par la pastille rouge → on mémorise que le mini est fermé.
+  // Tauri attend la fin de cette fonction pour fermer la fenêtre : une erreur ici ne doit pas la bloquer.
   useEffect(() => {
     if (!hasNativeMacControls()) return;
     let off: (() => void) | undefined;
     void currentMiniWindow.onCloseRequested(async () => {
-      await services.settings.setBool(SettingKeys.miniOpen, false);
-      services.changeBus.publish('mini');
+      try {
+        await services.settings.setBool(SettingKeys.miniOpen, false);
+        services.changeBus.publish('mini');
+      } catch (e) {
+        console.warn('[Mini] Fermeture non mémorisée', e);
+      }
     }).then((fn) => { off = fn; });
     return () => off?.();
   }, []);

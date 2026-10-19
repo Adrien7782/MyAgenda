@@ -105,6 +105,8 @@ fn show_app(app: &AppHandle) {
 }
 
 /// Cache toutes les fenêtres : l'application continue de tourner (rappels, synchronisation).
+/// Aussi appelé juste avant de quitter : sur macOS, le contenu web d'une fenêtre est détruit avant
+/// la fenêtre elle-même, ce qui laissait voir un cadre noir un court instant.
 #[cfg(desktop)]
 fn hide_app(app: &AppHandle) {
     for label in ["main", "mini"] {
@@ -157,6 +159,11 @@ pub fn run() {
             if let tauri::RunEvent::Reopen { has_visible_windows: false, .. } = _event {
                 show_app(_app);
             }
+            // Fermeture de l'application (⌘Q, menu « Quitter »…) : fenêtres cachées d'abord (pas d'écran noir).
+            #[cfg(desktop)]
+            if matches!(_event, tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit) {
+                hide_app(_app);
+            }
         });
 }
 
@@ -186,7 +193,10 @@ fn desktop_setup(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::W
                     "mini" => {
                         let _ = app.emit_to("main", "tray://toggle-mini", ());
                     }
-                    "quit" => app.exit(0),
+                    "quit" => {
+                        hide_app(app);
+                        app.exit(0);
+                    }
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
@@ -218,7 +228,11 @@ fn desktop_setup(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::W
                     }
                 }
                 // Fermeture réelle de la grande fenêtre : on quitte tout, mini compris.
-                WindowEvent::Destroyed => window.app_handle().exit(0),
+                WindowEvent::Destroyed => {
+                    let app = window.app_handle();
+                    hide_app(app);
+                    app.exit(0);
+                }
                 _ => {}
             }
         })

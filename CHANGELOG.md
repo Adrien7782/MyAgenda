@@ -3,6 +3,11 @@
 Écris ici ce qui change **avant** de publier une version (`npm version …`).
 La section de la version publiée s'affiche dans l'application, dans Réglages → Mises à jour.
 
+## 1.1.1
+
+- Mac : le mini agenda se ferme de nouveau (pastille rouge, menu « Afficher / masquer le mini »).
+- Ordinateur : plus d'écran noir furtif en quittant l'application.
+
 ## 1.1.0
 
 - **Notes** : une nouvelle page pour garder tes idées et tout ce qu'il faut retenir. Titre, texte mis en forme (titres, gras, italique, souligné, barré, surligné, listes, cases à cocher, citations), enregistrement automatique, recherche, notes épinglées et colorées, téléchargement en .txt (ou partage sur téléphone), corbeille. Synchronisées sur tous tes appareils.
